@@ -121,11 +121,11 @@ bool __ar_listen(SocketError* errorReturn, SOCKET sock, int backlog)
 	return false;
 }
 
-bool __ar_accept(SocketError* errorReturn, SOCKET serverSocket, SOCKET* clientSocket, sockaddr* clientAddress)
+bool __ar_accept(SocketError* errorReturn, SOCKET serverSocket, OUT SOCKET& clientSocket, OUT sockaddr& clientAddress)
 {
 	SOCKET _clientSocket;
 	int clientAddressSize = sizeof(sockaddr);
-	if ((_clientSocket = accept(serverSocket, clientAddress, &clientAddressSize)) == INVALID_SOCKET)
+	if ((_clientSocket = accept(serverSocket, &clientAddress, &clientAddressSize)) == INVALID_SOCKET)
 	{
 		int error = WSAGetLastError();
 		const char* errorStr = nullptr;
@@ -151,13 +151,13 @@ bool __ar_accept(SocketError* errorReturn, SOCKET serverSocket, SOCKET* clientSo
 		return true;
 	}
 	else
-		*clientSocket = _clientSocket;
+		clientSocket = _clientSocket;
 	return false;
 }
 
-bool __ar_connect(SocketError* errorReturn, SOCKET sock, const sockaddr* socketAddress)
+bool __ar_connect(SocketError* errorReturn, SOCKET sock, const sockaddr& socketAddress)
 {
-	if (connect(sock, socketAddress, sizeof(sockaddr)) == SOCKET_ERROR)
+	if (connect(sock, &socketAddress, sizeof(sockaddr)) == SOCKET_ERROR)
 	{
 		int error = WSAGetLastError();
 		const char* errorStr = nullptr;

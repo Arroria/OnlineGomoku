@@ -1,28 +1,28 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="arSocket">
-      <UniqueIdentifier>{858f6354-231a-419f-b35b-bcdaf0b9d008}</UniqueIdentifier>
-    </Filter>
     <Filter Include="main">
       <UniqueIdentifier>{624cc67f-169e-4818-80ad-a95bb11d264c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_arSocket">
+      <UniqueIdentifier>{858f6354-231a-419f-b35b-bcdaf0b9d008}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\arSocket\arJSON.cpp">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClCompile>
     <ClCompile Include="..\..\arSocket\arSocket.cpp">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClCompile>
     <ClCompile Include="..\..\arSocket\AsyncConnector.cpp">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClCompile>
     <ClCompile Include="..\..\arSocket\JSON_Based_Socket.cpp">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClCompile>
     <ClCompile Include="..\..\arSocket\SocketReciver.cpp">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>main</Filter>
@@ -33,19 +33,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\arSocket\arJSON.h">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClInclude>
     <ClInclude Include="..\..\arSocket\arSocket.h">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClInclude>
     <ClInclude Include="..\..\arSocket\AsyncConnector.h">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClInclude>
     <ClInclude Include="..\..\arSocket\JSON_Based_Socket.h">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClInclude>
     <ClInclude Include="..\..\arSocket\SocketReciver.h">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>main</Filter>
@@ -53,10 +53,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\arSocket\arJSON.inl">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </None>
     <None Include="..\..\arSocket\arSocket.inl">
-      <Filter>arSocket</Filter>
+      <Filter>_arSocket</Filter>
     </None>
   </ItemGroup>
 </Project>

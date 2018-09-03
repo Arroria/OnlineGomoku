@@ -2,6 +2,7 @@
 
 //STL
 #define _WINSOCKAPI_
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <Windows.h>
 #include <iostream>
 using std::cout;
