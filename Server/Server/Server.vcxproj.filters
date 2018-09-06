@@ -7,6 +7,9 @@
     <Filter Include="_arSocket">
       <UniqueIdentifier>{858f6354-231a-419f-b35b-bcdaf0b9d008}</UniqueIdentifier>
     </Filter>
+    <Filter Include="temp">
+      <UniqueIdentifier>{4065496d-162f-4f31-a1c7-804b0ad135e9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\arSocket\arJSON.cpp">
@@ -30,6 +33,15 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>main</Filter>
     </ClCompile>
+    <ClCompile Include="GomokuRoom.cpp">
+      <Filter>temp</Filter>
+    </ClCompile>
+    <ClCompile Include="User.cpp">
+      <Filter>temp</Filter>
+    </ClCompile>
+    <ClCompile Include="GomokuLobby.cpp">
+      <Filter>temp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\arSocket\arJSON.h">
@@ -50,6 +62,15 @@
     <ClInclude Include="stdafx.h">
       <Filter>main</Filter>
     </ClInclude>
+    <ClInclude Include="User.h">
+      <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="GomokuRoom.h">
+      <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="GomokuLobby.h">
+      <Filter>temp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\arSocket\arJSON.inl">
@@ -58,5 +79,8 @@
     <None Include="..\..\arSocket\arSocket.inl">
       <Filter>_arSocket</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="memo.txt" />
   </ItemGroup>
 </Project>

@@ -13,6 +13,12 @@ public:
 	AsyncConnector(const SOCKET& socket, const sockaddr_in& address);
 	~AsyncConnector();
 
+	inline bool operator==(SOCKET _other) const { return m_socket == _other; }
+	inline bool operator==(const AsyncConnector& _other) const { return m_socket == _other.m_socket; }
+	inline bool operator>(const AsyncConnector& _other) const { return m_socket > _other.m_socket; }
+	inline bool operator<(const AsyncConnector& _other) const { return m_socket < _other.m_socket; }
+
+
 	void Run();
 	inline bool Joinable()	{ return m_reciveThread.joinable(); }
 	inline void Join()		{ m_reciveThread.join(); }

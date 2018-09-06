@@ -59,4 +59,7 @@
       <Filter>_arSocket</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="memo.txt" />
+  </ItemGroup>
 </Project>

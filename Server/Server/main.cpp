@@ -1,8 +1,11 @@
 #include "stdafx.h"
 
+#include "GomokuLobby.h"
 
 int main()
 {
+	g_server = new GomokuLobby();
+
 	SocketError socketError;
 	WSADATA wsaData;
 	if (__ar_WSAStartup(&socketError, 0x0202, &wsaData))					{ cout << "__ar_WSAStartup >> Error : "	<< socketError.errorName << endl;	system("pause");	exit(1); }
@@ -20,7 +23,10 @@ int main()
 		SOCKET clientSocket;
 		sockaddr_in clientAddress;
 		__ar_accept(&socketError, mySocket, clientSocket, clientAddress);
+
 		cout << "Connected >> " << clientSocket << ">>" << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;
+		g_server->EnterLobby(new AsyncConnector(clientSocket, clientAddress));
+
 		closesocket(clientSocket);
 	}
 
