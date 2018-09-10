@@ -24,10 +24,18 @@ int main()
 		sockaddr_in clientAddress;
 		__ar_accept(&socketError, mySocket, clientSocket, clientAddress);
 
-		cout << "Connected >> " << clientSocket << ">>" << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;
+		{
+			cout_region_lock;
+			cout << "Server connected >> Socket : " << clientSocket << " >> Address : " << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;
+		}
 
 		AsyncConnector* client = new AsyncConnector(clientSocket, clientAddress);
 		client->Run();
+		{
+			cout_region_lock;
+			cout << "AsyncConnector Running >> " << clientSocket << ' ' << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;
+		}
+
 		g_server->EnterLobby(client);
 	}
 

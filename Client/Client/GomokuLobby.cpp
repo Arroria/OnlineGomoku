@@ -17,7 +17,7 @@ GomokuLobby::~GomokuLobby()
 
 void GomokuLobby::Init()
 {
-	m_serverConnector->Returner([this](AsyncConnector & user, int recvResult, SocketBuffer & recvData)->bool { return ProtocolProcessing(user, recvResult, recvData); });
+	AttachConnectorReturner();
 }
 
 void GomokuLobby::Update()
@@ -35,15 +35,18 @@ void GomokuLobby::Update()
 
 void GomokuLobby::Render()
 {
+	cout_region_lock;
+	cout << "is Lobby" << endl;
 }
 
 void GomokuLobby::Release()
 {
+	DetachConnector();
 }
 
 
 
-bool GomokuLobby::ProtocolProcessing(AsyncConnector & user, int recvResult, SocketBuffer & recvData)
+bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, SocketBuffer & recvData)
 {
 	if (recvResult > 0)
 	{
@@ -57,11 +60,13 @@ bool GomokuLobby::ProtocolProcessing(AsyncConnector & user, int recvResult, Sock
 		}
 
 		const std::string& iMessage = iJSON["Message"].Str();
-			 if (iMessage == "CreateRoom")	{ /*if (CreateRoom(user, iJSON))	return true;*/ }
-		else if (iMessage == "JoinRoom")	{ /*if (EnterRoom(user, iJSON))	return true;*/ }
-		else if (iMessage == "LeaveLobby")	{ if (LeaveLobby(iJSON))	return true; }
+		///	 if (iMessage == "CreateRoom")	{ if (CreateRoom(user, iJSON))	return true; }
+		///else if (iMessage == "JoinRoom")	{ if (EnterRoom(user, iJSON))	return true; }
+		///else 
+
+		if (iMessage == "LeaveLobby")	{ if (LeaveLobby(iJSON))	return true; }
 		else
-		{ cout_region_lock; cout << "GomokuLobby >> Error : UnknownMessage" << endl; }
+		{ cout_region_lock; cout << "GomokuLobby >> Note : UnknownMessage" << endl; }
 	}
 	else
 	{
@@ -73,8 +78,9 @@ bool GomokuLobby::ProtocolProcessing(AsyncConnector & user, int recvResult, Sock
 
 bool GomokuLobby::LeaveLobby(const arJSON & iJSON)
 {
-	if (iJSON.IsIn("LeaveLobby") && iJSON["LeaveLobby"].Int())
+	if (iJSON.IsIn("Result") && iJSON["Result"].Int())
 	{
+		DetachConnector();
 		SntInst(SceneManager).ChangeScene(new GomokuTitle());
 		return true;
 	}

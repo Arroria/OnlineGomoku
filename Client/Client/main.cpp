@@ -21,6 +21,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		g_processManager->SetFunction(MainLoop::Initialize, MainLoop::Update, MainLoop::Render, MainLoop::Release);
 		if (SUCCEEDED(g_processManager->CreateDevice(true)))
 		{
+			SocketError socketError;
+			WSADATA wsaData;
+			if (__ar_WSAStartup(&socketError, 0x0202, &wsaData))
+			{
+				cout << "__ar_WSAStartup >> Error : " << socketError.errorName << endl;
+				system("pause");
+				exit(1);
+			}
+
+
+
 			lastWParam = g_processManager->Loop();
 			if (DEVICE)
 				DEVICE->Release();

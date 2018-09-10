@@ -34,12 +34,6 @@ void AsyncConnector::RecvLoop()
 	while (run)
 	{
 		int result = __ar_recv(m_socket, socketBuffer);
-		if (result < 0)
-		{
-			int a = WSAGetLastError();
-			int b = 1;
-		}
-
 		while (true)
 		{
 			std::lock_guard<std::mutex> locker(ReturnerAccessMutex());
@@ -47,7 +41,7 @@ void AsyncConnector::RecvLoop()
 			if (returner)
 			{
 				if (returner(*this, result, socketBuffer))
-					int a= 6;// run = false;
+					run = false;
 				break;
 			}
 		}

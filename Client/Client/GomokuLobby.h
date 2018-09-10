@@ -14,7 +14,12 @@ public:
 	void Release() override;
 
 private:
-	bool ProtocolProcessing(AsyncConnector&, int, SocketBuffer&);
+	inline void AttachConnectorReturner()
+	{
+		m_serverConnector->Returner([this](AsyncConnector & user, int recvResult, SocketBuffer & recvData)->bool { return MessageProcessing(user, recvResult, recvData); });
+	}
+	inline void DetachConnector() { m_serverConnector->Returner(nullptr); }
+	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
 
 	bool LeaveLobby(const arJSON& iJSON);
 

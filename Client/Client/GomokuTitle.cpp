@@ -16,7 +16,6 @@ GomokuTitle::~GomokuTitle()
 
 void GomokuTitle::Init()
 {
-	ServerSystemBuild();
 }
 
 void GomokuTitle::Update()
@@ -42,6 +41,7 @@ void GomokuTitle::Update()
 
 void GomokuTitle::Render()
 {
+	cout_region_lock;
 	cout << "is Title" << endl;
 }
 
@@ -50,20 +50,6 @@ void GomokuTitle::Release()
 }
 
 
-
-bool GomokuTitle::ServerSystemBuild()
-{
-	SocketError socketError;
-	WSADATA wsaData;	
-	if (__ar_WSAStartup(&socketError, 0x0202, &wsaData))
-	{
-		cout << "__ar_WSAStartup >> Error : "	<< socketError.errorName << endl;	system("pause");
-		exit(1);
-	}
-
-	//성공한다고 치자
-	return true;
-}
 
 SOCKET GomokuTitle::ServerConnect(const sockaddr_in& address)
 {

@@ -10,6 +10,7 @@ public:
 	GomokuLobby();
 	~GomokuLobby();
 
+	void PlayerConnect(AsyncConnector* user);
 	void EnterLobby(AsyncConnector* user);
 	void DestroyRoom(int id);
 
@@ -20,6 +21,8 @@ private:
 	bool EnterRoom(AsyncConnector& user, const arJSON& iJSON);
 	bool LeaveLobby(AsyncConnector& user, const arJSON& iJSON);
 
+
+	bool RegistedUserRemove(AsyncConnector& user);
 
 private:
 	std::set<AsyncConnector*> m_userList;
