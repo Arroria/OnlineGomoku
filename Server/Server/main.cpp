@@ -25,9 +25,10 @@ int main()
 		__ar_accept(&socketError, mySocket, clientSocket, clientAddress);
 
 		cout << "Connected >> " << clientSocket << ">>" << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;
-		g_server->EnterLobby(new AsyncConnector(clientSocket, clientAddress));
 
-		closesocket(clientSocket);
+		AsyncConnector* client = new AsyncConnector(clientSocket, clientAddress);
+		client->Run();
+		g_server->EnterLobby(client);
 	}
 
 

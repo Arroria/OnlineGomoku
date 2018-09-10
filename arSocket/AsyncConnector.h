@@ -26,22 +26,24 @@ public:
 
 	inline const SOCKET&		Socket() const	{ return m_socket; }
 	inline const sockaddr_in&	Address() const	{ return m_address; }
-	inline Returner_t	Returner() const				{ std::lock_guard<std::mutex> locker(m_returnerMutex);	return m_returner; }
-	inline void			Returner(Returner_t returner)	{ std::lock_guard<std::mutex> locker(m_returnerMutex); m_returner = returner; }
+	inline Returner_t	Returner() const				{ std::lock_guard<std::mutex> locker(m_mtxReturnerReferenced);	return m_returner; }
+	inline void			Returner(Returner_t returner)	{ std::lock_guard<std::mutex> locker(m_mtxReturnerReferenced); m_returner = returner; }
+
+	inline std::mutex&	ReturnerAccessMutex() const { return m_mtxReturnerAccessed; }
 
 	inline operator const SOCKET&() const		{ return m_socket; }
 	inline operator const sockaddr_in&() const	{ return m_address; }
 
 private:
-	static inline void RecvLoop(AsyncConnector& _this) { _this.RecvLoop(); }
 	void RecvLoop();
-
+	
 private:
 	SOCKET m_socket;
 	sockaddr_in m_address;
 
 	std::thread m_reciveThread;
 	Returner_t m_returner;
-	mutable std::mutex m_returnerMutex;
+	mutable std::mutex m_mtxReturnerReferenced;
+	mutable std::mutex m_mtxReturnerAccessed;
 };
 

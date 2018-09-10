@@ -20,7 +20,7 @@ void AsyncConnector::Run()
 		std::terminate();
 
 	using StaticRecvLoop = void(*)(AsyncConnector&);
-	m_reciveThread = std::thread(static_cast<StaticRecvLoop>(&AsyncConnector::RecvLoop), std::ref(*this));
+	m_reciveThread = std::thread([this]() { RecvLoop(); });
 }
 
 
@@ -34,13 +34,20 @@ void AsyncConnector::RecvLoop()
 	while (run)
 	{
 		int result = __ar_recv(m_socket, socketBuffer);
+		if (result < 0)
+		{
+			int a = WSAGetLastError();
+			int b = 1;
+		}
+
 		while (true)
 		{
+			std::lock_guard<std::mutex> locker(ReturnerAccessMutex());
 			Returner_t returner = Returner();
 			if (returner)
 			{
 				if (returner(*this, result, socketBuffer))
-					run = false;
+					int a= 6;// run = false;
 				break;
 			}
 		}

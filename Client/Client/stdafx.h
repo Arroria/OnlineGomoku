@@ -15,3 +15,25 @@ using std::endl;
 #include <SocketReciver.h>
 #include <AsyncConnector.h>
 
+#include "./SDK/InputDevice.h"
+#if _DEBUG
+#pragma comment (lib, "./SDK/InputDeviceD.lib")
+#else
+#pragma comment (lib, "./SDK/InputDevice.lib")
+#endif
+inline InputDevice g_inputDevice;
+
+#include "ProcessManager.h"
+inline ProcessManager* g_processManager = nullptr;
+#define DEVICE (g_processManager->GetDevice())
+
+inline LPD3DXSPRITE g_sprite = nullptr;
+
+
+
+#include <mutex>
+using mutex_lock_guard = std::lock_guard<std::mutex>;
+inline std::mutex g_coutMutex;
+#define cout_region_lock std::lock_guard<std::mutex> locker(g_coutMutex)
+
+

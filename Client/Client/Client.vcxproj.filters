@@ -7,6 +7,9 @@
     <Filter Include="main">
       <UniqueIdentifier>{312b61c1-1c0a-43f6-b509-dac31ac6b22a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="temp">
+      <UniqueIdentifier>{54a8e6a7-d201-4886-b13c-161c64954408}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\arSocket\arJSON.cpp">
@@ -30,6 +33,23 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>main</Filter>
     </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>temp</Filter>
+    </ClCompile>
+    <ClCompile Include="GomokuLobby.cpp">
+      <Filter>temp</Filter>
+    </ClCompile>
+    <ClCompile Include="Singleton.cpp" />
+    <ClCompile Include="ProcessManager.cpp">
+      <Filter>main</Filter>
+    </ClCompile>
+    <ClCompile Include="MainLoop.cpp">
+      <Filter>main</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="GomokuTitle.cpp">
+      <Filter>temp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\arSocket\arJSON.h">
@@ -48,6 +68,26 @@
       <Filter>_arSocket</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
+      <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="GomokuLobby.h">
+      <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="Singleton.h" />
+    <ClInclude Include="ProcessManager.h">
+      <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="MainLoop.h">
+      <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="GomokuTitle.h">
+      <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
       <Filter>main</Filter>
     </ClInclude>
   </ItemGroup>
