@@ -112,7 +112,7 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, const arJSON & iJSON)
 	{
 		std::lock_guard<std::mutex> locker(m_mtxUserList);
 		for (auto iter : m_userList)
-			__ar_send(user, oJSON);
+			__ar_send(*iter, oJSON);
 	}
 	return false;
 }
