@@ -18,10 +18,11 @@ private:
 	{
 		m_serverConnector->Returner([this](AsyncConnector & user, int recvResult, SocketBuffer & recvData)->bool { return MessageProcessing(user, recvResult, recvData); });
 	}
-	inline void DetachConnector() { m_serverConnector->Returner(nullptr); }
+	inline void DetachConnectorReturner() { m_serverConnector->Returner(nullptr); }
 	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
 
-	bool LeaveLobby(const arJSON& iJSON);
+	bool RoomCreated(const arJSON& iJSON);
+	bool LobbyLeaved(const arJSON& iJSON);
 
 private:
 	AsyncConnector * m_serverConnector;
