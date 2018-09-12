@@ -35,7 +35,7 @@ void GomokuTitle::Update()
 		}
 	}
 
-	if (g_inputDevice.IsKeyDown('2'))
+	if (g_inputDevice.IsKeyDown('0'))
 		std::terminate();
 }
 

@@ -12,30 +12,33 @@ GomokuRoom::GomokuRoom(GomokuLobby& lobby, AsyncConnector * host, int id, const 
 	, m_host(host)
 	, m_guest(nullptr)
 {
+	if (host)
+		AttachConnectorReturner(*host);
 }
 
 GomokuRoom::~GomokuRoom()
 {
-	mutex_lock_guard locker0(m_mtxHost);
-	mutex_lock_guard locker1(m_mtxGuest);
-
 	if (m_host || m_guest)
-		std::thread([]() { cout_region_lock; cout << "Room >> Disconstructor : Unsafety called" << endl; }).detach();
+		server_log_error("Room >> Disconstructor : Unsafety called" << endl);
 }
 
 
 
 bool GomokuRoom::EnterRoom(AsyncConnector * guest, const std::string & password)
 {
-	mutex_lock_guard locker(m_mtxGuest);
-	if (m_guest || m_password != password)
+	mutex_lock_guard locker(m_mtxEnterLeave);
+	if (!m_host || m_guest || m_password != password)
+	{
+		server_log_error("Room >> Enter Error" << endl);
 		return false;
+	}
 
 	m_guest = guest;
+	AttachConnectorReturner(*m_guest);
 	return true;
 }
 
-bool GomokuRoom::MessageProcess(AsyncConnector & user, int recvResult, SocketBuffer & recvData)
+bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, SocketBuffer & recvData)
 {
 	if (recvResult > 0)
 	{
@@ -43,39 +46,67 @@ bool GomokuRoom::MessageProcess(AsyncConnector & user, int recvResult, SocketBuf
 		arJSON iJSON;
 		if (JSON_To_arJSON(recvData.Buffer(), iJSON))
 		{
-			cout_region_lock;
-			cout << "JSON Errored by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl;
+			server_log_error("JSON Errored by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 			return true;
 		}
 
+
 		const std::string& iMessage = iJSON["Message"].Str();
-			 if (iMessage == "LeaveRoom")	{ if (LeaveRoom(user, iJSON))	return true; }
+			 if (iMessage == "LeaveRoom")	{ if (!LeaveRoom(user))	return true; }
 	}
 	else
 	{
+		DetachConnectorReturner(user);
+		if (!LeaveRoom(user))
+			server_log_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
+		server_log_note("Lobby >> Client disconnected : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 		return true;
 	}
 	return false;
 }
 
-bool GomokuRoom::LeaveRoom(AsyncConnector & user, const arJSON & iJSON)
+bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 {
+	bool destroyRoom = false;
 	{
-		mutex_lock_guard locker(m_mtxHost);
+		mutex_lock_guard locker(m_mtxEnterLeave);
+		DetachConnectorReturner(user);
+
+		auto SendLeaved = [](AsyncConnector & leavedUser)
+		{
+			arJSON oJSON;
+			{
+				oJSON["Message"] = "RoomLeaved";
+				oJSON["Result"] = 1;
+			}
+			__ar_send(leavedUser, oJSON);
+		};
+		auto SendRivalLeaved = [](AsyncConnector & stayUser)
+		{
+			arJSON oJSON;
+			oJSON["Message"] = "UserDisconnected";
+			
+			__ar_send(stayUser, oJSON);
+		};
+
 		if (&user == m_guest)
 		{
 			m_lobby.EnterLobby(&user);
+			SendLeaved(*m_guest);
+			SendRivalLeaved(*m_host);
+			
 			m_guest = nullptr;
-			return false;
+			return true;
 		}
-	}
 
-	bool destroyRoom = false;
-	{
-		mutex_lock_guard locker(m_mtxGuest);
 		if (&user == m_host)
 		{
 			m_lobby.EnterLobby(&user);
+			SendLeaved(*m_host);
+			if (m_guest)
+				SendRivalLeaved(*m_guest);
+			
+			m_host = nullptr;
 			destroyRoom = true;
 		}
 	}
@@ -84,7 +115,5 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user, const arJSON & iJSON)
 		m_lobby.DestroyRoom(m_id);
 		return true;
 	}
-	
-	std::thread([]() { cout_region_lock; cout << "Room >> LeaveRoom : Unsafety called" << endl; }).detach();
 	return false;
 }

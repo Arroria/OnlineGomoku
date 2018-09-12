@@ -3,6 +3,7 @@
 
 #include "SceneManager.h"
 #include "GomokuTitle.h"
+#include "GomokuRoom.h"
 
 GomokuLobby::GomokuLobby(AsyncConnector* serverConnector)
 	: m_serverConnector(serverConnector)
@@ -75,6 +76,7 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 		///else 
 
 			 if (iMessage == "RoomCreated")	{ if (RoomCreated(iJSON))	return true; }
+		else if (iMessage == "RoomEntered")	{ if (RoomEntered(iJSON))	return true; }
 		else if (iMessage == "LobbyLeaved")	{ if (LobbyLeaved(iJSON))	return true; }
 		else
 		{ cout_region_lock; cout << "GomokuLobby >> Note : UnknownMessage" << endl; }
@@ -100,6 +102,26 @@ bool GomokuLobby::RoomCreated(const arJSON & iJSON)
 
 	cout_region_lock;
 	cout << "RoomCreated : " << roomJSON["ID"].Int() << " - " << roomJSON["Name"].Str() << endl;
+	return false;
+}
+
+bool GomokuLobby::RoomEntered(const arJSON & iJSON)
+{
+	if (!iJSON.IsIn("Room"))
+		return false;
+
+	const arJSON& roomJSON = iJSON["Room"].Sub();
+	if (!roomJSON.IsIn("ID") || !roomJSON.IsIn("Name"))
+		return false;
+
+	int id = roomJSON["ID"].Int();
+	std::string name = roomJSON["Name"].Str();
+
+	DetachConnectorReturner();
+	SntInst(SceneManager).ChangeScene(new GomokuRoom(m_serverConnector, id, name));
+
+	cout_region_lock;
+	cout << "RoomEntered : " << id << " - " << name << endl;
 	return false;
 }
 

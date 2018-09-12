@@ -19,7 +19,7 @@ void GomokuLobby::EnterLobby(AsyncConnector * user)
 	m_userList.insert(user);
 
 	AttachConnectorReturner(*user);
-	std::thread([&user]() { cout_region_lock; cout << "Lobby >> Enter lobby : " << inet_ntoa(user->Address().sin_addr) << ':' << ntohs(user->Address().sin_port) << endl; }).detach();
+	server_log_note("Lobby >> Enter lobby : " << inet_ntoa(user->Address().sin_addr) << ':' << ntohs(user->Address().sin_port) << endl);
 }
 
 void GomokuLobby::DestroyRoom(int id)
@@ -36,8 +36,7 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 		arJSON iJSON;
 		if (JSON_To_arJSON(recvData.Buffer(), iJSON))
 		{
-			cout_region_lock;
-			cout << "JSON Errored by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl;
+			server_log_error("JSON Errored by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 			return true;
 		}
 
@@ -50,11 +49,8 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 	{
 		DetachConnectorReturner(user);
 		if (!RegistedUserRemove(user))
-		{
-			cout_region_lock;
-			cout << "Lobby >> LeaveLobby : Can not found user in user list" << endl;
-		}
-		std::thread([&user]() { cout_region_lock; cout << "Lobby >> Client disconnected : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl; }).detach();
+			server_srdlog_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
+		server_log_note("Lobby >> Client disconnected : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 		return true;
 	}
 	return false;
@@ -68,7 +64,7 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, const arJSON & iJSON)
 		const arJSON& roomJSON = iJSON["Room"].Sub();
 		if (!roomJSON.IsIn("Name"))
 		{
-			server_srdlog_error("Lobby >> CreateRoom : iJSON Parameter error" << endl);
+			server_log_error("Lobby >> CreateRoom : iJSON Parameter error" << endl);
 			return false;
 		}
 
@@ -90,12 +86,35 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, const arJSON & iJSON)
 	}();
 	if (id < 0)
 	{
-		server_srdlog_error("Lobby >> Create room >> Create ID : Can not found empty slot" << endl);
+		server_log_error("Lobby >> Create room >> Create ID : Can not found empty slot" << endl);
 		return false;
 	}
 
-	CreateRoom(user, id, name, password, true);
-	
+	return CreateRoom(user, id, name, password, true);
+}
+
+bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & name, const std::string & password, bool noMutex)
+{
+	std::shared_ptr<std::lock_guard<std::mutex>> mtx(noMutex ? nullptr : new std::lock_guard<std::mutex>(m_mtxRoomList));
+
+	DetachConnectorReturner(user);
+	if (!RegistedUserRemove(user))
+		server_srdlog_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
+
+	m_roomList[id] = new GomokuRoom(*this, &user, id, name, password);
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "RoomEntered";
+		arJSON roomJSON;
+		{
+			roomJSON["ID"] = id;
+			roomJSON["Name"] = name;
+		}
+		oJSON["Room"] = roomJSON;
+		int a = __ar_send(user, oJSON);
+		int b = 1;
+	}
+	server_log_note("Lobby >> CreateRoom : Room created for [ " << id << " : " << name << " ] by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 
 
 	//Broadcast
@@ -117,15 +136,6 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, const arJSON & iJSON)
 	return false;
 }
 
-bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & name, const std::string & password, bool noMutex)
-{
-	std::shared_ptr<std::lock_guard<std::mutex>> mtx(noMutex ? nullptr : new std::lock_guard<std::mutex>(m_mtxRoomList));
-	
-	m_roomList[id] = new GomokuRoom(*this, &user, id, name, password);
-	server_log_note("Lobby >> CreateRoom : Room created for [ " << id << " : " << name << " ] by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
-	return true;
-}
-
 bool GomokuLobby::EnterRoom(AsyncConnector & user, const arJSON & iJSON)
 {
 	return false;
@@ -136,8 +146,8 @@ bool GomokuLobby::LeaveLobby(AsyncConnector & user, const arJSON & iJSON)
 	DetachConnectorReturner(user);
 	if (!RegistedUserRemove(user))
 	{
-		cout_region_lock;
-		cout << "Lobby >> LeaveLobby : Can not found user in user list" << endl;
+		server_log_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
+		return true;
 	}
 	
 	arJSON oJSON;
@@ -147,7 +157,7 @@ bool GomokuLobby::LeaveLobby(AsyncConnector & user, const arJSON & iJSON)
 	}
 	__ar_send(user, oJSON);
 
-	std::thread([&user]() { cout_region_lock; cout << "Lobby >> Leave lobby : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl; }).detach();
+	server_log_note("Lobby >> Leave lobby : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 	return true;
 }
 

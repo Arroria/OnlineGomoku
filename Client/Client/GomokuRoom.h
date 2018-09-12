@@ -1,11 +1,11 @@
 #pragma once
 #include "Scene.h"
-class GomokuLobby final :
+class GomokuRoom final :
 	public Scene
 {
 public:
-	GomokuLobby(AsyncConnector* serverConnector);
-	~GomokuLobby();
+	GomokuRoom(AsyncConnector* serverConnector, int id, const std::string& name);
+	~GomokuRoom();
 
 public:
 	void Init() override;
@@ -21,11 +21,11 @@ private:
 	inline void DetachConnectorReturner() { m_serverConnector->Returner(nullptr); }
 	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
 
-	bool RoomCreated(const arJSON& iJSON);
-	bool RoomEntered(const arJSON& iJSON);
-	bool LobbyLeaved(const arJSON& iJSON);
+	bool RoomLeaved(const arJSON& iJSON);
 
 private:
 	AsyncConnector * m_serverConnector;
+	int m_id;
+	std::string m_name;
 };
 
