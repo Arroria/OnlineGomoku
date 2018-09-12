@@ -10,6 +10,10 @@ public:
 
 	bool EnterRoom(AsyncConnector* guest, const std::string& password);
 
+	inline int ID() const { return m_id; }
+	inline std::string Name() const { return m_name; }
+	inline std::string Password() const { return m_password; }
+
 private:
 	inline void AttachConnectorReturner(AsyncConnector& connector)
 	{

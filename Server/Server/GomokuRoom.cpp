@@ -14,12 +14,14 @@ GomokuRoom::GomokuRoom(GomokuLobby& lobby, AsyncConnector * host, int id, const 
 {
 	if (host)
 		AttachConnectorReturner(*host);
+	else
+		server_log_error("Room >> Constructure >> Host user is NULL" << endl);
 }
 
 GomokuRoom::~GomokuRoom()
 {
 	if (m_host || m_guest)
-		server_log_error("Room >> Disconstructor : Unsafety called" << endl);
+		server_log_error("Room >> Disconstructor >> Has a user" << endl);
 }
 
 
@@ -27,14 +29,20 @@ GomokuRoom::~GomokuRoom()
 bool GomokuRoom::EnterRoom(AsyncConnector * guest, const std::string & password)
 {
 	mutex_lock_guard locker(m_mtxEnterLeave);
-	if (!m_host || m_guest || m_password != password)
+	if (!m_host || m_guest)
 	{
-		server_log_error("Room >> Enter Error" << endl);
+		server_log_error("Room >> Guest enter failed by unknown error" << endl);
+		return false;
+	}
+	if (m_password != password)
+	{
+		server_log_error("Room >> Guest enter failed by inconsistency password" << endl);
 		return false;
 	}
 
 	m_guest = guest;
 	AttachConnectorReturner(*m_guest);
+	server_log_note("Room >> Guest enter success" << endl);
 	return true;
 }
 
@@ -49,17 +57,19 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 			server_log_error("JSON Errored by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 			return true;
 		}
-
-
 		const std::string& iMessage = iJSON["Message"].Str();
+
+
 			 if (iMessage == "LeaveRoom")	{ if (!LeaveRoom(user))	return true; }
+		else
+			server_log_error("Lobby >> Unknown message recived" << endl);
 	}
 	else
 	{
 		DetachConnectorReturner(user);
 		if (!LeaveRoom(user))
-			server_log_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
-		server_log_note("Lobby >> Client disconnected : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
+			server_log_error("Room >> LeaveLobby : Can not found user in user list" << endl);
+		server_log_note("Room >> Client disconnected : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
 		return true;
 	}
 	return false;
@@ -94,8 +104,9 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 			m_lobby.EnterLobby(&user);
 			SendLeaved(*m_guest);
 			SendRivalLeaved(*m_host);
-			
 			m_guest = nullptr;
+			
+			server_log_note("Room >> Guest leaved the room" << endl);
 			return true;
 		}
 
@@ -103,16 +114,26 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 		{
 			m_lobby.EnterLobby(&user);
 			SendLeaved(*m_host);
-			if (m_guest)
-				SendRivalLeaved(*m_guest);
-			
 			m_host = nullptr;
-			destroyRoom = true;
+
+			if (m_guest)
+			{
+				SendRivalLeaved(*m_guest);
+				m_host = m_guest;
+				m_guest = nullptr;
+				server_log_note("Room >> Host leaved the room, Guest get host" << endl);
+				return true;
+			}
+			else
+				destroyRoom = true;
 		}
 	}
+
+	//밖으로 안빼면 스레드 터짐
 	if (destroyRoom)
 	{
 		m_lobby.DestroyRoom(m_id);
+		server_log_note("Room >> Host leaved the room, Room destroyed" << endl);
 		return true;
 	}
 	return false;

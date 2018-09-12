@@ -42,6 +42,23 @@ void GomokuLobby::Update()
 		__ar_send(*m_serverConnector, oJSON);
 	}
 
+
+	auto EnterRoomPlease = [this](int id)
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "EnterRoom";
+		arJSON roomJSON;
+		{
+			roomJSON["ID"] = id;
+		}
+		oJSON["Room"] = roomJSON;
+		__ar_send(*m_serverConnector, oJSON);
+	};
+	if (g_inputDevice.IsKeyDown('6'))	EnterRoomPlease(0);
+	if (g_inputDevice.IsKeyDown('7'))	EnterRoomPlease(1);
+	if (g_inputDevice.IsKeyDown('8'))	EnterRoomPlease(2);
+
+
 	if (g_inputDevice.IsKeyDown('0'))
 		std::terminate();
 }
