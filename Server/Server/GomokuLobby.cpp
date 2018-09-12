@@ -24,6 +24,16 @@ void GomokuLobby::EnterLobby(AsyncConnector * user)
 
 void GomokuLobby::DestroyRoom(int id)
 {
+	mutex_lock_guard locker(m_mtxRoomList);
+	GomokuRoom*& room = m_roomList[id];
+	if (room)
+	{
+		delete room;
+		room = nullptr;
+		server_log_error("Lobby << Destroy Room : Room has destroyed id:" << id << endl);
+	}
+	else
+		server_log_error("Lobby << Destroy Room : Can not found room id:" << id << endl);
 }
 
 
@@ -138,6 +148,20 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & 
 
 bool GomokuLobby::EnterRoom(AsyncConnector & user, const arJSON & iJSON)
 {
+	DetachConnectorReturner(user);
+	if (!RegistedUserRemove(user))
+	{
+		server_log_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
+		return true;
+	}
+
+
+
+
+
+
+	//sadsadsydggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+
 	return false;
 }
 
