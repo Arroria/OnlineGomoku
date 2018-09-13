@@ -35,5 +35,6 @@ inline LPD3DXSPRITE g_sprite = nullptr;
 using mutex_lock_guard = std::lock_guard<std::mutex>;
 inline std::mutex g_coutMutex;
 #define cout_region_lock std::lock_guard<std::mutex> locker(g_coutMutex)
+#define locked_cout cout_region_lock; cout
 
 

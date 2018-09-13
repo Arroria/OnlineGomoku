@@ -24,8 +24,13 @@ private:
 	bool RoomCreated(const arJSON& iJSON);
 	bool RoomEntered(const arJSON& iJSON);
 	bool LobbyLeaved(const arJSON& iJSON);
+	bool RoomList(const arJSON& iJSON);
+	bool RoomDestroyed(const arJSON& iJSON);
 
 private:
 	AsyncConnector * m_serverConnector;
+
+	std::mutex m_mtxRoomList;
+	std::map<int, std::string> m_roomList;
 };
 

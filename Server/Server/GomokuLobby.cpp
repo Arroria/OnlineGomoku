@@ -15,11 +15,32 @@ GomokuLobby::~GomokuLobby()
 
 void GomokuLobby::EnterLobby(AsyncConnector * user)
 {
-	mutex_lock_guard locker(m_mtxUserList);
-	m_userList.insert(user);
+	{
+		mutex_lock_guard locker(m_mtxUserList);
+		m_userList.insert(user);
+	}
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "RoomList";
 
-	AttachConnectorReturner(*user);
+		mutex_lock_guard locker(m_mtxRoomList);
+		for (auto iter : m_roomList)
+		{
+			if (!iter)
+				continue;
+
+			arJSON roomJSON;
+			{
+				roomJSON["ID"] = iter->ID();
+				roomJSON["Name"] = iter->Name();
+			}
+			oJSON["RoomList"].Append(roomJSON);
+		}
+		__ar_send(*user, oJSON);
+	}
+
 	server_log_note("Lobby >> Enter lobby : " << inet_ntoa(user->Address().sin_addr) << ':' << ntohs(user->Address().sin_port) << endl);
+	AttachConnectorReturner(*user);
 }
 
 void GomokuLobby::DestroyRoom(int id)
@@ -30,6 +51,20 @@ void GomokuLobby::DestroyRoom(int id)
 	{
 		delete room;
 		room = nullptr;
+
+
+		//Broadcast
+		arJSON oJSON;
+		{
+			oJSON["Message"] = "RoomDestroyed";
+			oJSON["RoomDestroyed"] = id;
+		}
+		{
+			std::lock_guard<std::mutex> locker(m_mtxUserList);
+			for (auto iter : m_userList)
+				__ar_send(*iter, oJSON);
+		}
+
 		server_log_note("Lobby << Destroy Room : Room has destroyed id:" << id << endl);
 	}
 	else

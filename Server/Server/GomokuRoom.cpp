@@ -101,18 +101,17 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 
 		if (&user == m_guest)
 		{
-			m_lobby.EnterLobby(&user);
 			SendLeaved(*m_guest);
 			SendRivalLeaved(*m_host);
 			m_guest = nullptr;
 			
+			m_lobby.EnterLobby(&user);
 			server_log_note("Room >> Guest leaved the room" << endl);
 			return true;
 		}
 
 		if (&user == m_host)
 		{
-			m_lobby.EnterLobby(&user);
 			SendLeaved(*m_host);
 			m_host = nullptr;
 
@@ -121,11 +120,16 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 				SendRivalLeaved(*m_guest);
 				m_host = m_guest;
 				m_guest = nullptr;
+
+				m_lobby.EnterLobby(&user);
 				server_log_note("Room >> Host leaved the room, Guest get host" << endl);
 				return true;
 			}
 			else
+			{
+				m_lobby.EnterLobby(&user);
 				destroyRoom = true;
+			}
 		}
 	}
 

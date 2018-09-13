@@ -42,6 +42,15 @@ void GomokuLobby::Update()
 		__ar_send(*m_serverConnector, oJSON);
 	}
 
+	if (g_inputDevice.IsKeyDown('3'))
+	{
+		mutex_lock_guard lockerR(m_mtxRoomList);
+		cout_region_lock;
+		cout << "[ Room List ]" << endl;
+		for (auto& iter : m_roomList)
+			cout << iter.first << " : " << iter.second << endl;
+	}
+
 
 	auto EnterRoomPlease = [this](int id)
 	{
@@ -92,9 +101,11 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 		///else if (iMessage == "JoinRoom")	{ if (EnterRoom(user, iJSON))	return true; }
 		///else 
 
-			 if (iMessage == "RoomCreated")	{ if (RoomCreated(iJSON))	return true; }
-		else if (iMessage == "RoomEntered")	{ if (RoomEntered(iJSON))	return true; }
-		else if (iMessage == "LobbyLeaved")	{ if (LobbyLeaved(iJSON))	return true; }
+			 if (iMessage == "RoomCreated")		{ if (RoomCreated(iJSON))	return true; }
+		else if (iMessage == "RoomEntered")		{ if (RoomEntered(iJSON))	return true; }
+		else if (iMessage == "LobbyLeaved")		{ if (LobbyLeaved(iJSON))	return true; }
+		else if (iMessage == "RoomList")		{ if (RoomList(iJSON))		return true; }
+		else if (iMessage == "RoomDestroyed")	{ if (RoomDestroyed(iJSON))	return true; }
 		else
 		{ cout_region_lock; cout << "GomokuLobby >> Note : UnknownMessage" << endl; }
 	}
@@ -112,13 +123,18 @@ bool GomokuLobby::RoomCreated(const arJSON & iJSON)
 {
 	if (!iJSON.IsIn("Room"))
 		return false;
-
 	const arJSON& roomJSON = iJSON["Room"].Sub();
-	if (!roomJSON.IsIn("ID") || !roomJSON.IsIn("Name"))
+	if (!roomJSON.IsIn("ID"))
 		return false;
 
-	cout_region_lock;
-	cout << "RoomCreated : " << roomJSON["ID"].Int() << " - " << roomJSON["Name"].Str() << endl;
+	int id = roomJSON["ID"].Int();
+	std::string name;
+	if (roomJSON.IsIn("Name"))
+		name = roomJSON["Name"].Str();
+
+	mutex_lock_guard lockerR(m_mtxRoomList);
+	m_roomList.insert(std::make_pair(id, name));
+	locked_cout << "RoomCreated : " << roomJSON["ID"].Int() << " - " << roomJSON["Name"].Str() << endl;
 	return false;
 }
 
@@ -149,6 +165,40 @@ bool GomokuLobby::LobbyLeaved(const arJSON & iJSON)
 		DetachConnectorReturner();
 		SntInst(SceneManager).ChangeScene(new GomokuTitle());
 		return true;
+	}
+	return false;
+}
+
+bool GomokuLobby::RoomList(const arJSON & iJSON)
+{
+	if (iJSON.IsIn("RoomList"))
+	{
+		mutex_lock_guard locker(m_mtxRoomList);
+		for (auto& iter : iJSON["RoomList"])
+		{
+			if (!iter.IsIn("ID"))
+				continue;
+
+			int id = iter["ID"].Int();
+			std::string name;
+
+			if (iter.IsIn("Name"))
+				name = iter["Name"].Str();
+
+			m_roomList.insert(std::make_pair(id, name));
+		}
+	}
+	return false;
+}
+
+bool GomokuLobby::RoomDestroyed(const arJSON & iJSON)
+{
+	if (iJSON.IsIn("RoomDestroyed"))
+	{
+		mutex_lock_guard locker(m_mtxRoomList);
+		auto iter = m_roomList.find(iJSON["RoomDestroyed"].Int());
+		if (iter != m_roomList.end())
+			m_roomList.erase(iter);
 	}
 	return false;
 }

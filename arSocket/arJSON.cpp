@@ -184,6 +184,8 @@ bool JSON_To_arJSON_SupportModule(std::string::const_iterator strEnd, std::strin
 				{
 					if (_char == ',')
 						ClearData();
+					else if (_char == '}')
+						return false;
 					else
 						return true;
 				}
