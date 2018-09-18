@@ -33,6 +33,7 @@ void GomokuLobby::EnterLobby(AsyncConnector * user)
 			{
 				roomJSON["ID"] = iter->ID();
 				roomJSON["Name"] = iter->Name();
+				roomJSON["Locked"] = (iter->IsLocked() ? 1 : 0);
 			}
 			oJSON["RoomList"].Append(roomJSON);
 		}
@@ -157,6 +158,7 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & 
 		{
 			roomJSON["ID"] = id;
 			roomJSON["Name"] = name;
+			roomJSON["Locked"] = (password.size() ? 1 : 0);
 		}
 		oJSON["Room"] = roomJSON;
 		__ar_send(user, oJSON);
@@ -172,6 +174,7 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & 
 		{
 			roomJSON["ID"] = id;
 			roomJSON["Name"] = name;
+			roomJSON["Locked"] = (password.size() ? 1 : 0);
 		}
 		oJSON["Room"] = roomJSON;
 	}

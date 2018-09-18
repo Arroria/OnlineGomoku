@@ -10,6 +10,9 @@
     <Filter Include="temp">
       <UniqueIdentifier>{4065496d-162f-4f31-a1c7-804b0ad135e9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Gomoku">
+      <UniqueIdentifier>{009fc911-ba19-41aa-9c74-80a1a903aa73}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\arSocket\arJSON.cpp">
@@ -36,11 +39,11 @@
     <ClCompile Include="GomokuRoom.cpp">
       <Filter>temp</Filter>
     </ClCompile>
-    <ClCompile Include="User.cpp">
-      <Filter>temp</Filter>
-    </ClCompile>
     <ClCompile Include="GomokuLobby.cpp">
       <Filter>temp</Filter>
+    </ClCompile>
+    <ClCompile Include="Gomoku.cpp">
+      <Filter>Gomoku</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -62,14 +65,14 @@
     <ClInclude Include="stdafx.h">
       <Filter>main</Filter>
     </ClInclude>
-    <ClInclude Include="User.h">
-      <Filter>temp</Filter>
-    </ClInclude>
     <ClInclude Include="GomokuRoom.h">
       <Filter>temp</Filter>
     </ClInclude>
     <ClInclude Include="GomokuLobby.h">
       <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="Gomoku.h">
+      <Filter>Gomoku</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

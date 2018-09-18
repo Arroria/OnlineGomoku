@@ -27,5 +27,7 @@ private:
 	AsyncConnector * m_serverConnector;
 	int m_id;
 	std::string m_name;
+
+
 };
 
