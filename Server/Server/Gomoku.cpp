@@ -3,8 +3,11 @@
 
 
 Gomoku::Gomoku(std::function<void(bool)> winReturner)
-	: m_plan()
+	: m_board()
 	, m_winReturner(winReturner)
+	
+	, black(*this)
+	, white(*this)
 {
 }
 
@@ -26,8 +29,8 @@ bool Gomoku::Attack(size_t x, size_t y, bool isBlack)
 	auto OutOfRange = [](int x, int y)->bool
 	{
 		return
-			x < 0 || Gomoku::planSizeX <= x ||
-			y < 0 || Gomoku::planSizeY <= y;
+			x < 0 || boardSizeX <= x ||
+			y < 0 || boardSizeY <= y;
 	};
 	auto Way_X = [&OutOfRange](int focusX, int focusY, int& resultX, int& resultY, int level)->bool		{ return !OutOfRange(resultX = focusX - 4 + level, resultY = focusY); };
 	auto Way_Y = [&OutOfRange](int focusX, int focusY, int& resultX, int& resultY, int level)->bool		{ return !OutOfRange(resultX = focusX			, resultY = focusY - 4 + level); };
