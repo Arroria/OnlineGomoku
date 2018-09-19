@@ -11,6 +11,9 @@ GomokuRoom::GomokuRoom(GomokuLobby& lobby, AsyncConnector * host, int id, const 
 	, m_lobby(lobby)
 	, m_host(host)
 	, m_guest(nullptr)
+
+	, m_gomoku(nullptr)
+	, m_ready{ false }
 {
 	if (host)
 		AttachConnectorReturner(*host);
@@ -22,6 +25,11 @@ GomokuRoom::~GomokuRoom()
 {
 	if (m_host || m_guest)
 		server_log_error("Room >> Disconstructor >> Has a user" << endl);
+	if (m_gomoku)
+	{
+		delete m_gomoku;
+		m_gomoku = nullptr;
+	}
 }
 
 
@@ -60,7 +68,9 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 		const std::string& iMessage = iJSON["Message"].Str();
 
 
-			 if (iMessage == "LeaveRoom")	{ if (!LeaveRoom(user))	return true; }
+			 if (iMessage == "LeaveRoom")	{ if (!LeaveRoom(user))		return true; }
+		else if (iMessage == "Ready")		{ if (Ready(user, iJSON))	return true; }
+		else if (iMessage == "Attack")		{ if (Attack(user, iJSON))	return true; }
 		else
 			server_log_error("Lobby >> Unknown message recived" << endl);
 	}
@@ -104,6 +114,7 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 			SendLeaved(*m_guest);
 			SendRivalLeaved(*m_host);
 			m_guest = nullptr;
+			m_ready[0] = false;
 			
 			m_lobby.EnterLobby(&user);
 			server_log_note("Room >> Guest leaved the room" << endl);
@@ -120,6 +131,8 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 				SendRivalLeaved(*m_guest);
 				m_host = m_guest;
 				m_guest = nullptr;
+				m_ready[0] = m_ready[1];
+				m_ready[1] = false;
 
 				m_lobby.EnterLobby(&user);
 				server_log_note("Room >> Host leaved the room, Guest get host" << endl);
@@ -141,4 +154,80 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 		return true;
 	}
 	return false;
+}
+
+bool GomokuRoom::Ready(AsyncConnector & user, const arJSON& iJSON)
+{
+	if (!m_gomoku &&
+		iJSON.IsIn("Ready"))
+	{
+		bool ready = iJSON["Ready"].Int();
+		if (&user == m_host)
+		{
+			server_log_note("Room >> Host Ready " << (ready ? "ON" : "OFF") << endl);
+			m_ready[0] = ready;
+		}
+		else if (&user == m_guest)
+		{
+			server_log_note("Room >> Guest Ready " << (ready ? "ON" : "OFF") << endl);
+			m_ready[1] = ready;
+		}
+
+		if (m_ready[0] && m_ready[1])
+		{
+			m_gomoku = new Gomoku([this](bool blackWin) { this->GomokuMessageProcessing(blackWin); });
+			server_log_note("Room >> Game created" << endl);
+		}
+	}
+	return false;
+}
+
+bool GomokuRoom::Attack(AsyncConnector & user, const arJSON & iJSON)
+{
+	if (!m_gomoku)
+		return false;
+
+	if (!iJSON.IsIn("Attack"))
+		return false;
+	
+	const arJSON& attackJSON = iJSON["Attack"].Sub();
+	if (!attackJSON.IsIn("x") || !attackJSON.IsIn("y"))
+		return false;
+
+
+
+	int x = attackJSON["x"].Int();
+	int y = attackJSON["y"].Int();
+	bool isBlack = &user == m_host;
+
+	std::lock_guard<std::mutex> locker(m_mtxGomoku);
+	if (m_gomoku->Attack(x, y, isBlack))
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "Attacked";
+		arJSON attackJSON;
+		{
+			attackJSON["Attacker"] = isBlack ? "Black" : "White";
+			attackJSON["x"] = x;
+			attackJSON["y"] = y;
+		}
+		oJSON["Attack"] = attackJSON;
+
+		__ar_send(*m_host, oJSON);
+		__ar_send(*m_guest, oJSON);
+		server_log_note("Room >> " << (isBlack ? "Black" : "White") << " attacked" << endl);
+	}
+	return false;
+}
+
+
+
+void GomokuRoom::GomokuMessageProcessing(bool blackWin)
+{
+	arJSON oJSON;
+	oJSON["Message"] = "GomokuEnd";
+	oJSON["Winner"] = blackWin ? "Black" : "White";
+	
+	__ar_send(*m_host, oJSON);
+	__ar_send(*m_guest, oJSON);
 }

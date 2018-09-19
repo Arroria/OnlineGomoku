@@ -69,4 +69,6 @@ private:
 private:
 	GomokuBoard m_board;
 	std::function<void(bool)> m_winReturner;
+
+	bool m_blackTurn;
 };

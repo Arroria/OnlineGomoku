@@ -8,6 +8,8 @@ Gomoku::Gomoku(std::function<void(bool)> winReturner)
 	
 	, black(*this)
 	, white(*this)
+
+	, m_blackTurn(true)
 {
 }
 
@@ -19,11 +21,14 @@ Gomoku::~Gomoku()
 
 bool Gomoku::Attack(size_t x, size_t y, bool isBlack)
 {
+	if (m_blackTurn == isBlack)
+		return false;
+
 	int& place = At(x, y);
 	if (place)
 		return false;
 	place = isBlack ? -1 : 1;
-
+	m_blackTurn = !m_blackTurn;
 
 
 	auto OutOfRange = [](int x, int y)->bool

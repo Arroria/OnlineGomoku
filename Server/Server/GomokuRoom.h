@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 
+#include "Gomoku.h"
+
 class GomokuLobby;
 class GomokuRoom
 {
@@ -23,6 +25,11 @@ private:
 	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
 
 	bool LeaveRoom(AsyncConnector& user);
+	bool Ready(AsyncConnector& user, const arJSON& iJSON);
+	bool Attack(AsyncConnector& user, const arJSON& iJSON);
+
+
+	void GomokuMessageProcessing(bool);
 
 private:
 	int m_id;
@@ -36,5 +43,9 @@ private:
 	std::mutex m_mtxEnterLeave;
 	std::mutex m_mtxHost;
 	std::mutex m_mtxGuest;
+
+	Gomoku* m_gomoku;
+	bool m_ready[2];
+	std::mutex m_mtxGomoku;
 };
 
