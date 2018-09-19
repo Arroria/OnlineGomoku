@@ -108,13 +108,24 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 			
 			__ar_send(stayUser, oJSON);
 		};
+		auto SendReady = [this](bool isBlack, bool isReady)
+		{
+			arJSON oJSON;
+			oJSON["Message"] = "Ready";
+			oJSON["Ready"] = isReady ? 1 : 0;
+			oJSON["By"] = isBlack ? "Black" : "White";
+
+			if (m_host)		__ar_send(*m_host, oJSON);
+			if (m_guest)	__ar_send(*m_guest, oJSON);
+		};
 
 		if (&user == m_guest)
 		{
 			SendLeaved(*m_guest);
 			SendRivalLeaved(*m_host);
 			m_guest = nullptr;
-			m_ready[0] = false;
+			m_ready[1] = false;
+			SendReady(false, false);
 			
 			m_lobby.EnterLobby(&user);
 			server_log_note("Room >> Guest leaved the room" << endl);
@@ -131,8 +142,11 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 				SendRivalLeaved(*m_guest);
 				m_host = m_guest;
 				m_guest = nullptr;
+
 				m_ready[0] = m_ready[1];
 				m_ready[1] = false;
+				SendReady(false, false);
+				SendReady(true, m_ready[0]);
 
 				m_lobby.EnterLobby(&user);
 				server_log_note("Room >> Host leaved the room, Guest get host" << endl);
@@ -161,22 +175,41 @@ bool GomokuRoom::Ready(AsyncConnector & user, const arJSON& iJSON)
 	if (!m_gomoku &&
 		iJSON.IsIn("Ready"))
 	{
+		auto SendReady = [this](bool isBlack, bool isReady)
+		{
+			arJSON oJSON;
+			oJSON["Message"] = "Ready";
+			oJSON["Ready"] = isReady ? 1 : 0;
+			oJSON["By"] = isBlack ? "Black" : "White";
+
+			if (m_host)		__ar_send(*m_host, oJSON);
+			if (m_guest)	__ar_send(*m_guest, oJSON);
+		};
+
 		bool ready = iJSON["Ready"].Int();
 		if (&user == m_host)
 		{
 			server_log_note("Room >> Host Ready " << (ready ? "ON" : "OFF") << endl);
 			m_ready[0] = ready;
+			SendReady(true, ready);
 		}
 		else if (&user == m_guest)
 		{
 			server_log_note("Room >> Guest Ready " << (ready ? "ON" : "OFF") << endl);
 			m_ready[1] = ready;
+			SendReady(false, ready);
 		}
 
 		if (m_ready[0] && m_ready[1])
 		{
 			m_gomoku = new Gomoku([this](bool blackWin) { this->GomokuMessageProcessing(blackWin); });
 			server_log_note("Room >> Game created" << endl);
+
+
+			arJSON oJSON;
+			oJSON["Message"] = "GomokuStart";
+			if (m_host)		__ar_send(*m_host, oJSON);
+			if (m_guest)	__ar_send(*m_guest, oJSON);
 		}
 	}
 	return false;
@@ -213,8 +246,8 @@ bool GomokuRoom::Attack(AsyncConnector & user, const arJSON & iJSON)
 		}
 		oJSON["Attack"] = attackJSON;
 
-		__ar_send(*m_host, oJSON);
-		__ar_send(*m_guest, oJSON);
+		if (m_host)		__ar_send(*m_host, oJSON);
+		if (m_guest)	__ar_send(*m_guest, oJSON);
 		server_log_note("Room >> " << (isBlack ? "Black" : "White") << " attacked" << endl);
 	}
 	return false;
@@ -228,6 +261,6 @@ void GomokuRoom::GomokuMessageProcessing(bool blackWin)
 	oJSON["Message"] = "GomokuEnd";
 	oJSON["Winner"] = blackWin ? "Black" : "White";
 	
-	__ar_send(*m_host, oJSON);
-	__ar_send(*m_guest, oJSON);
+	if (m_host)		__ar_send(*m_host, oJSON);
+	if (m_guest)	__ar_send(*m_guest, oJSON);
 }

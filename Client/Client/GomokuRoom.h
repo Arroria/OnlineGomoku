@@ -1,5 +1,7 @@
 #pragma once
 #include "Scene.h"
+
+#include "GomokuBoard.h"
 class GomokuRoom final :
 	public Scene
 {
@@ -23,11 +25,17 @@ private:
 
 	bool RoomLeaved(const arJSON& iJSON);
 
+	bool Ready(const arJSON& iJSON);
+	bool GomokuStart(const arJSON& iJSON);
+	bool Attacked(const arJSON& iJSON);
+	bool GomokuEnd(const arJSON& iJSON);
+
 private:
 	AsyncConnector * m_serverConnector;
 	int m_id;
 	std::string m_name;
 
-
+	GomokuBoard m_gomokuBoard;
+	bool m_playerReady[2];
 };
 

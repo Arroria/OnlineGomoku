@@ -164,6 +164,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="GomokuBoard.cpp" />
     <ClCompile Include="GomokuLobby.cpp" />
     <ClCompile Include="GomokuRoom.cpp" />
     <ClCompile Include="GomokuTitle.cpp" />
@@ -186,6 +187,7 @@
     <ClInclude Include="..\..\arSocket\AsyncConnector.h" />
     <ClInclude Include="..\..\arSocket\JSON_Based_Socket.h" />
     <ClInclude Include="..\..\arSocket\SocketReciver.h" />
+    <ClInclude Include="GomokuBoard.h" />
     <ClInclude Include="GomokuLobby.h" />
     <ClInclude Include="GomokuRoom.h" />
     <ClInclude Include="GomokuTitle.h" />

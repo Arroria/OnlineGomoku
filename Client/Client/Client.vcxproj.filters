@@ -53,6 +53,7 @@
     <ClCompile Include="GomokuRoom.cpp">
       <Filter>temp</Filter>
     </ClCompile>
+    <ClCompile Include="GomokuBoard.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\arSocket\arJSON.h">
@@ -96,6 +97,7 @@
     <ClInclude Include="GomokuRoom.h">
       <Filter>temp</Filter>
     </ClInclude>
+    <ClInclude Include="GomokuBoard.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\arSocket\arJSON.inl">

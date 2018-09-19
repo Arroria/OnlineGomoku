@@ -15,14 +15,14 @@ public:
 	inline constexpr static bool IsWhite(int value) { return IsBlack(-value); }
 
 public:
-	inline constexpr int& At(size_t x, size_t y)				{ return m_plan[x + y * boardSizeX]; }
-	inline constexpr const int& At(size_t x, size_t y) const	{ return m_plan[x + y * boardSizeX]; }
+	inline constexpr int& At(size_t x, size_t y)				{ return m_board[x + y * boardSizeX]; }
+	inline constexpr const int& At(size_t x, size_t y) const	{ return m_board[x + y * boardSizeX]; }
 	
 	inline constexpr bool IsBlack(size_t x, size_t y) const { return IsBlack(At(x, y)); }
 	inline constexpr bool IsWhite(size_t x, size_t y) const { return IsWhite(At(x, y)); }
 
 private:
-	std::array<int, boardSizeX * boardSizeY> m_plan;
+	std::array<int, boardSizeX * boardSizeY> m_board;
 };
 
 
