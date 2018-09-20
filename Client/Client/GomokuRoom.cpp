@@ -48,6 +48,25 @@ void GomokuRoom::Update()
 		__ar_send(*m_serverConnector, oJSON);
 	}
 
+
+	auto GomokuAttack = [this](int x, int y)
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "Attack";
+		arJSON attackJSON;
+		{
+			attackJSON["x"] = x;
+			attackJSON["y"] = y;
+		}
+		oJSON["Attack"] = attackJSON;
+		__ar_send(*m_serverConnector, oJSON);
+	};
+	if (g_inputDevice.IsKeyDown('4'))	GomokuAttack(7, 7);
+	if (g_inputDevice.IsKeyDown('5'))	GomokuAttack(6, 7);
+	if (g_inputDevice.IsKeyDown('6'))	GomokuAttack(8, 4);
+	if (g_inputDevice.IsKeyDown('7'))	GomokuAttack(0, 0);
+	if (g_inputDevice.IsKeyDown('8'))	GomokuAttack(14, 14);
+
 	if (g_inputDevice.IsKeyDown('0'))
 		std::terminate();
 }
@@ -136,7 +155,9 @@ bool GomokuRoom::Attacked(const arJSON & iJSON)
 	if (!iJSON.IsIn("Attack"))
 		return false;
 	const arJSON& attackJSON = iJSON["Attack"].Sub();
-	if (!iJSON.IsIn("Attacker") || !iJSON.IsIn("x") || !iJSON.IsIn("y"))
+	if (!attackJSON.IsIn("Attacker") ||
+		!attackJSON.IsIn("x") ||
+		!attackJSON.IsIn("y"))
 		return false;
 
 	bool isBlack = iJSON["Attacker"].Str() == "Black";
