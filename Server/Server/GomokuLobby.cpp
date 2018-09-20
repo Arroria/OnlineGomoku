@@ -15,10 +15,22 @@ GomokuLobby::~GomokuLobby()
 
 void GomokuLobby::EnterLobby(AsyncConnector * user)
 {
+	//Regist user
+	if (!user)
+	{
+		server_log_error("Lobby >> Lobby enter failed by nullptr" << endl);
+		return;
+	}
+
+	DetachConnectorReturner(*user);
 	{
 		mutex_lock_guard locker(m_mtxUserList);
 		m_userList.insert(user);
 	}
+	server_log_error("Lobby >> Lobby enter success " << user->ToStr() << endl);
+
+
+	//send room list for registed user
 	{
 		arJSON oJSON;
 		oJSON["Message"] = "RoomList";
@@ -39,8 +51,6 @@ void GomokuLobby::EnterLobby(AsyncConnector * user)
 		}
 		__ar_send(*user, oJSON);
 	}
-
-	server_log_note("Lobby >> Enter lobby : " << inet_ntoa(user->Address().sin_addr) << ':' << ntohs(user->Address().sin_port) << endl);
 	AttachConnectorReturner(*user);
 }
 
@@ -82,7 +92,7 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 		arJSON iJSON;
 		if (JSON_To_arJSON(recvData.Buffer(), iJSON))
 		{
-			server_log_error("JSON Errored by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
+			server_log_error("JSON Errored by " << user.ToStr() << endl);
 			return true;
 		}
 		const std::string& iMessage = iJSON["Message"].Str();
@@ -92,14 +102,13 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 		else if (iMessage == "EnterRoom")	{ if (EnterRoom(user, iJSON))	return true; }
 		else if (iMessage == "LeaveLobby")	{ if (LeaveLobby(user, iJSON))	return true; }
 		else
-			server_log_error("Lobby >> Unknown message recived" << endl);
+			server_log_error("Lobby >> Unknown message recived by " << user.ToStr() <<  " said : " << iMessage << endl);
 	}
 	else
 	{
 		DetachConnectorReturner(user);
-		if (!RegistedUserRemove(user))
-			server_log_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
-		server_log_note("Lobby >> Client disconnected : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
+		RegistedUserRemove(user);
+		server_log_note("Lobby >> Client disconnected server : " << user.ToStr() << endl);
 		return true;
 	}
 	return false;
@@ -148,7 +157,7 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & 
 
 	DetachConnectorReturner(user);
 	if (!RegistedUserRemove(user))
-		server_log_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
+		return true;
 
 	m_roomList[id] = new GomokuRoom(*this, &user, id, name, password);
 	{
@@ -163,7 +172,7 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & 
 		oJSON["Room"] = roomJSON;
 		__ar_send(user, oJSON);
 	}
-	server_log_note("Lobby >> CreateRoom : Room that [ " << id << " : " << name << " ] created by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
+	server_log_note("Lobby >> CreateRoom : Room that [ " << id << " : " << name << " ] created by " << user.ToStr() << endl);
 
 
 	//Broadcast
@@ -237,10 +246,7 @@ bool GomokuLobby::EnterRoom(AsyncConnector & user, const arJSON & iJSON)
 	__ar_send(user, oJSON);
 
 	if (!RegistedUserRemove(user))
-	{
-		server_log_error("Lobby >> EnterRoom : Can not found user in user list" << endl);
 		return true;
-	}
 	return false;
 }
 
@@ -248,10 +254,7 @@ bool GomokuLobby::LeaveLobby(AsyncConnector & user, const arJSON & iJSON)
 {
 	DetachConnectorReturner(user);
 	if (!RegistedUserRemove(user))
-	{
-		server_log_error("Lobby >> LeaveLobby : Can not found user in user list" << endl);
 		return true;
-	}
 	
 	arJSON oJSON;
 	{
@@ -275,6 +278,8 @@ bool GomokuLobby::RegistedUserRemove(AsyncConnector & user)
 		m_userList.erase(iter);
 		return true;
 	}
+	else
+		server_log_error("Lobby >> User remove : Can not found user in user list" << endl);
 	return false;
 }
 

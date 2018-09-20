@@ -62,7 +62,7 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 		arJSON iJSON;
 		if (JSON_To_arJSON(recvData.Buffer(), iJSON))
 		{
-			server_log_error("JSON Errored by " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
+			server_log_error("JSON Errored by " << user.ToStr() << endl);
 			return true;
 		}
 		const std::string& iMessage = iJSON["Message"].Str();
@@ -77,9 +77,8 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 	else
 	{
 		DetachConnectorReturner(user);
-		if (!LeaveRoom(user))
-			server_log_error("Room >> LeaveLobby : Can not found user in user list" << endl);
-		server_log_note("Room >> Client disconnected : " << inet_ntoa(user.Address().sin_addr) << ':' << ntohs(user.Address().sin_port) << endl);
+		LeaveRoom(user);
+		server_log_note("Room >> Client disconnected : " << user.ToStr() << endl);
 		return true;
 	}
 	return false;
@@ -156,7 +155,10 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 			}
 		}
 		else
+		{
 			server_log_error("Room >> Leave user unknown" << endl);
+			return true;
+		}
 		GomokuDestroy();
 	}
 
@@ -287,6 +289,7 @@ void GomokuRoom::GomokuMessageProcessing(bool blackWin)
 		delete m_gomoku;
 		m_gomoku = nullptr;
 	}
+	server_log_note("Room >> Gomoku destroyed" << endl);
 }
 
 
@@ -299,5 +302,6 @@ void GomokuRoom::GomokuDestroy()
 		delete m_gomoku;
 		m_gomoku = nullptr;
 	}
+	server_log_note("Room >> Gomoku destroyed" << endl);
 }
 

@@ -34,6 +34,9 @@ public:
 	inline operator const SOCKET&() const		{ return m_socket; }
 	inline operator const sockaddr_in&() const	{ return m_address; }
 
+
+	inline std::string ToStr() const { AddressToString(m_address); }
+
 private:
 	void RecvLoop();
 	
@@ -46,4 +49,3 @@ private:
 	mutable std::mutex m_mtxReturnerReferenced;
 	mutable std::mutex m_mtxReturnerAccessed;
 };
-
