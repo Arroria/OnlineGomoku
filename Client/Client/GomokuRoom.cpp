@@ -33,6 +33,21 @@ void GomokuRoom::Update()
 		__ar_send(*m_serverConnector, oJSON);
 	}
 
+	if (g_inputDevice.IsKeyDown('2'))
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "Ready";
+		oJSON["Ready"] = 1;
+		__ar_send(*m_serverConnector, oJSON);
+	}
+	if (g_inputDevice.IsKeyDown('3'))
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "Ready";
+		oJSON["Ready"] = 0;
+		__ar_send(*m_serverConnector, oJSON);
+	}
+
 	if (g_inputDevice.IsKeyDown('0'))
 		std::terminate();
 }
@@ -101,8 +116,8 @@ bool GomokuRoom::Ready(const arJSON & iJSON)
 	if (!iJSON.IsIn("Ready") || !iJSON.IsIn("By"))
 		return false;
 
-	bool ready = iJSON["By"].Int();
-	bool isBlack = iJSON["Ready"].Str() == "Black";
+	bool ready = iJSON["Ready"].Int();
+	bool isBlack = iJSON["By"].Str() == "Black";
 
 	m_playerReady[isBlack ? 0 : 1] = ready;
 	locked_cout << (isBlack ? "Black" : "White") << " Player ready " << (ready ? "On" : "Off") << endl;
@@ -135,8 +150,8 @@ bool GomokuRoom::Attacked(const arJSON & iJSON)
 		{
 			for (int x = 0; x < GomokuBoard::boardSizeX; x++)
 			{
-				if (GomokuBoard::IsBlack(x))		cout << "¡Ü";
-				else if (GomokuBoard::IsBlack(y))	cout << "¡Û";
+				if		(GomokuBoard::IsBlack(x))	cout << "¡Ü";
+				else if (GomokuBoard::IsWhite(y))	cout << "¡Û";
 				else								cout << "¦«";
 			}
 			cout << endl;

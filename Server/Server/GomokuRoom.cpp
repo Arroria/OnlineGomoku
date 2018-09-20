@@ -68,7 +68,7 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 		const std::string& iMessage = iJSON["Message"].Str();
 
 
-			 if (iMessage == "LeaveRoom")	{ if (!LeaveRoom(user))		return true; }
+			 if (iMessage == "LeaveRoom")	{ if (LeaveRoom(user))		return true; }
 		else if (iMessage == "Ready")		{ if (Ready(user, iJSON))	return true; }
 		else if (iMessage == "Attack")		{ if (Attack(user, iJSON))	return true; }
 		else
@@ -129,10 +129,8 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 			
 			m_lobby.EnterLobby(&user);
 			server_log_note("Room >> Guest leaved the room" << endl);
-			return true;
 		}
-
-		if (&user == m_host)
+		else if (&user == m_host)
 		{
 			SendLeaved(*m_host);
 			m_host = nullptr;
@@ -150,7 +148,6 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 
 				m_lobby.EnterLobby(&user);
 				server_log_note("Room >> Host leaved the room, Guest get host" << endl);
-				return true;
 			}
 			else
 			{
@@ -158,6 +155,9 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 				destroyRoom = true;
 			}
 		}
+		else
+			server_log_error("Room >> Leave user unknown" << endl);
+		GomokuDestroy();
 	}
 
 	//밖으로 안빼면 스레드 터짐
@@ -165,7 +165,6 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 	{
 		m_lobby.DestroyRoom(m_id);
 		server_log_note("Room >> Host leaved the room, Room destroyed" << endl);
-		return true;
 	}
 	return false;
 }
@@ -202,6 +201,7 @@ bool GomokuRoom::Ready(AsyncConnector & user, const arJSON& iJSON)
 
 		if (m_ready[0] && m_ready[1])
 		{
+			std::lock_guard<std::mutex> locker(m_mtxGomoku);
 			m_gomoku = new Gomoku([this](bool blackWin) { this->GomokuMessageProcessing(blackWin); });
 			server_log_note("Room >> Game created" << endl);
 
@@ -263,4 +263,17 @@ void GomokuRoom::GomokuMessageProcessing(bool blackWin)
 	
 	if (m_host)		__ar_send(*m_host, oJSON);
 	if (m_guest)	__ar_send(*m_guest, oJSON);
+	GomokuDestroy();
+}
+
+
+
+void GomokuRoom::GomokuDestroy()
+{
+	std::lock_guard<std::mutex> locker(m_mtxGomoku);
+	if (m_gomoku)
+	{
+		delete m_gomoku;
+		m_gomoku = nullptr;
+	}
 }

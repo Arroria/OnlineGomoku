@@ -15,8 +15,8 @@ public:
 	inline constexpr static bool IsWhite(int value) { return IsBlack(-value); }
 
 public:
-	inline constexpr int& At(size_t x, size_t y)				{ return m_board[x + y * boardSizeX]; }
-	inline constexpr const int& At(size_t x, size_t y) const	{ return m_board[x + y * boardSizeX]; }
+	inline int& At(size_t x, size_t y)				{ return m_board[x + y * boardSizeX]; }
+	inline const int& At(size_t x, size_t y) const	{ return m_board[x + y * boardSizeX]; }
 	
 	inline constexpr bool IsBlack(size_t x, size_t y) const { return IsBlack(At(x, y)); }
 	inline constexpr bool IsWhite(size_t x, size_t y) const { return IsWhite(At(x, y)); }
@@ -57,13 +57,13 @@ public:
 	GomokuWhite white;
 	GomokuBlack black;
 
-	inline constexpr const int& At(size_t x, size_t y) const	{ return m_board.At(x, y); }
+	inline const int& At(size_t x, size_t y) const	{ return m_board.At(x, y); }
 	inline constexpr static bool IsBlack(int stone) { return stone < 0; }
 
 	bool Attack(size_t x, size_t y, bool isBlack);
 
 private:
-	inline constexpr int& At(size_t x, size_t y) { return m_board.At(x, y); }
+	inline int& At(size_t x, size_t y) { return m_board.At(x, y); }
 
 
 private:

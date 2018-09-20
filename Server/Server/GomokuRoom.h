@@ -31,6 +31,8 @@ private:
 
 	void GomokuMessageProcessing(bool);
 
+	void GomokuDestroy();
+
 private:
 	int m_id;
 	std::string m_name;
