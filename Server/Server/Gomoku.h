@@ -15,6 +15,8 @@ public:
 	inline constexpr static bool IsWhite(int value) { return IsBlack(-value); }
 
 public:
+	GomokuBoard() { m_board.fill(0); }
+
 	inline int& At(size_t x, size_t y)				{ return m_board[x + y * boardSizeX]; }
 	inline const int& At(size_t x, size_t y) const	{ return m_board[x + y * boardSizeX]; }
 	

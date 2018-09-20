@@ -217,15 +217,27 @@ bool GomokuRoom::Ready(AsyncConnector & user, const arJSON& iJSON)
 
 bool GomokuRoom::Attack(AsyncConnector & user, const arJSON & iJSON)
 {
+	auto Log_CanNotFoundGomoku =			[]() { server_log_error("Room >> Attack >> Can not found Gomoku" << endl); };
+	auto Log_CanNotFoundJSONParameter =		[]() { server_log_error("Room >> Attack >> Can not found JSON parameter" << endl); };
+
 	if (!m_gomoku)
+	{
+		Log_CanNotFoundGomoku();
 		return false;
+	}
 
 	if (!iJSON.IsIn("Attack"))
+	{
+		Log_CanNotFoundJSONParameter();
 		return false;
+	}
 	
 	const arJSON& attackJSON = iJSON["Attack"].Sub();
 	if (!attackJSON.IsIn("x") || !attackJSON.IsIn("y"))
+	{
+		Log_CanNotFoundJSONParameter();
 		return false;
+	}
 
 
 

@@ -160,7 +160,7 @@ bool GomokuRoom::Attacked(const arJSON & iJSON)
 		!attackJSON.IsIn("y"))
 		return false;
 
-	bool isBlack = iJSON["Attacker"].Str() == "Black";
+	bool isBlack = attackJSON["Attacker"].Str() == "Black";
 	int x = attackJSON["x"].Int();
 	int y = attackJSON["y"].Int();
 
@@ -171,9 +171,9 @@ bool GomokuRoom::Attacked(const arJSON & iJSON)
 		{
 			for (int x = 0; x < GomokuBoard::boardSizeX; x++)
 			{
-				if		(GomokuBoard::IsBlack(x))	cout << "¡Ü";
-				else if (GomokuBoard::IsWhite(y))	cout << "¡Û";
-				else								cout << "¦«";
+				if		(m_gomokuBoard.IsBlack(x, y))	cout << "¡Ü";
+				else if (m_gomokuBoard.IsWhite(x, y))	cout << "¡Û";
+				else									cout << "£«";
 			}
 			cout << endl;
 		}
