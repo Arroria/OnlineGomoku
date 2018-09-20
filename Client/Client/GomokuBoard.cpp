@@ -4,5 +4,5 @@
 
 GomokuBoard::GomokuBoard()
 {
-	m_board.fill(0);
+	Clear();
 }

@@ -20,6 +20,8 @@ public:
 	inline constexpr bool IsBlack(size_t x, size_t y) const { return IsBlack(At(x, y)); }
 	inline constexpr bool IsWhite(size_t x, size_t y) const { return IsWhite(At(x, y)); }
 
+	inline void Clear() { m_board.fill(0); }
+
 private:
 	std::array<int, boardSizeX * boardSizeY> m_board;
 };

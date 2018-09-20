@@ -67,6 +67,12 @@ void GomokuRoom::Update()
 	if (g_inputDevice.IsKeyDown('7'))	GomokuAttack(0, 0);
 	if (g_inputDevice.IsKeyDown('8'))	GomokuAttack(14, 14);
 
+	if (g_inputDevice.IsKeyDown('Q'))	GomokuAttack(0, 14);
+	if (g_inputDevice.IsKeyDown('W'))	GomokuAttack(1, 14);
+	if (g_inputDevice.IsKeyDown('E'))	GomokuAttack(2, 14);
+	if (g_inputDevice.IsKeyDown('R'))	GomokuAttack(3, 14);
+	if (g_inputDevice.IsKeyDown('T'))	GomokuAttack(4, 14);
+
 	if (g_inputDevice.IsKeyDown('0'))
 		std::terminate();
 }
@@ -146,6 +152,7 @@ bool GomokuRoom::Ready(const arJSON & iJSON)
 bool GomokuRoom::GomokuStart(const arJSON & iJSON)
 {
 	locked_cout << "GameStarted\n";
+	m_gomokuBoard.Clear();
 	return false;
 }
 

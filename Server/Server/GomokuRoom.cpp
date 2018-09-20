@@ -219,6 +219,7 @@ bool GomokuRoom::Attack(AsyncConnector & user, const arJSON & iJSON)
 {
 	auto Log_CanNotFoundGomoku =			[]() { server_log_error("Room >> Attack >> Can not found Gomoku" << endl); };
 	auto Log_CanNotFoundJSONParameter =		[]() { server_log_error("Room >> Attack >> Can not found JSON parameter" << endl); };
+	auto Log_AttackFailed =					[]() { server_log_error("Room >> Attack >> Gomoku ignored attack" << endl); };
 
 	if (!m_gomoku)
 	{
@@ -262,6 +263,8 @@ bool GomokuRoom::Attack(AsyncConnector & user, const arJSON & iJSON)
 		if (m_guest)	__ar_send(*m_guest, oJSON);
 		server_log_note("Room >> " << (isBlack ? "Black" : "White") << " attacked" << endl);
 	}
+	else
+		Log_AttackFailed();
 	return false;
 }
 
@@ -269,13 +272,21 @@ bool GomokuRoom::Attack(AsyncConnector & user, const arJSON & iJSON)
 
 void GomokuRoom::GomokuMessageProcessing(bool blackWin)
 {
+	server_log_note("Room >> " << (blackWin ? "Black" : "White") << " WIN" << endl);
 	arJSON oJSON;
 	oJSON["Message"] = "GomokuEnd";
 	oJSON["Winner"] = blackWin ? "Black" : "White";
 	
 	if (m_host)		__ar_send(*m_host, oJSON);
 	if (m_guest)	__ar_send(*m_guest, oJSON);
-	GomokuDestroy();
+
+
+	//Holy Shit
+	if (m_gomoku)
+	{
+		delete m_gomoku;
+		m_gomoku = nullptr;
+	}
 }
 
 
@@ -289,3 +300,4 @@ void GomokuRoom::GomokuDestroy()
 		m_gomoku = nullptr;
 	}
 }
+
