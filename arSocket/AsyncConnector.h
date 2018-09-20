@@ -35,7 +35,7 @@ public:
 	inline operator const sockaddr_in&() const	{ return m_address; }
 
 
-	inline std::string ToStr() const { AddressToString(m_address); }
+	inline std::string ToStr() const { return AddressToString(m_address); }
 
 private:
 	void RecvLoop();

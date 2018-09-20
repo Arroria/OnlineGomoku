@@ -65,4 +65,4 @@ int __ar_recv(SOCKET socket, SocketBuffer& socketBuffer, int flags = NULL);
 #include <string>
 void SetSocketBuffer(const std::string& data, OUT SocketBuffer& socketBuffer);
 
-std::string AddressToString(const sockaddr_in& address) { return std::string(inet_ntoa(address.sin_addr)) + ':' + std::to_string(ntohs(address.sin_port)); }
+std::string AddressToString(const sockaddr_in& address);

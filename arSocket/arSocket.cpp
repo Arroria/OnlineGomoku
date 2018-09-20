@@ -233,3 +233,5 @@ void SetSocketBuffer(const std::string & data, OUT SocketBuffer& socketBuffer)
 	socketBuffer[data.size()] = NULL;
 	socketBuffer.DataLength(data.size());
 }
+
+std::string AddressToString(const sockaddr_in& address) { return std::string(inet_ntoa(address.sin_addr)) + ':' + std::to_string(ntohs(address.sin_port)); }

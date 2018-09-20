@@ -183,7 +183,7 @@ bool GomokuLobby::RoomList(const arJSON & iJSON)
 {
 	if (iJSON.IsIn("RoomList"))
 	{
-		mutex_lock_guard locker(m_mtxRoomList);
+		mutex_lock_guard locker2(m_mtxRoomList);
 		for (auto& iter : iJSON["RoomList"])
 		{
 			if (!iter.IsIn("ID"))
@@ -206,7 +206,7 @@ bool GomokuLobby::RoomDestroyed(const arJSON & iJSON)
 {
 	if (iJSON.IsIn("RoomDestroyed"))
 	{
-		mutex_lock_guard locker(m_mtxRoomList);
+		mutex_lock_guard locker2(m_mtxRoomList);
 		auto iter = m_roomList.find(iJSON["RoomDestroyed"].Int());
 		if (iter != m_roomList.end())
 			m_roomList.erase(iter);

@@ -263,6 +263,7 @@ bool GomokuRoom::Attack(AsyncConnector & user, const arJSON & iJSON)
 
 		if (m_host)		__ar_send(*m_host, oJSON);
 		if (m_guest)	__ar_send(*m_guest, oJSON);
+		//이거 순서가 이상한데
 		server_log_note("Room >> " << (isBlack ? "Black" : "White") << " attacked" << endl);
 	}
 	else
