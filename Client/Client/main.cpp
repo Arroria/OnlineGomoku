@@ -15,8 +15,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	if (SUCCEEDED(g_processManager->CreateWnd(L"Gomoku", WS_POPUP, MainLoop::MsgProc)))
 	{
-		g_processManager->WndResize(1280, 960);
-		g_processManager->WndMove(320, 60);
+		g_processManager->WndResize(1200, 800);
+		g_processManager->WndMove((1920 - 1200) / 2, (1080 - 800) / 2);
 		g_processManager->SetFPSLimite(30, 30);
 		g_processManager->SetFunction(MainLoop::Initialize, MainLoop::Update, MainLoop::Render, MainLoop::Release);
 		if (SUCCEEDED(g_processManager->CreateDevice(true)))
