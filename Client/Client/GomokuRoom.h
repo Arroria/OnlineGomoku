@@ -46,6 +46,7 @@ private:
 
 		LPDIRECT3DTEXTURE9 readyOn;
 		LPDIRECT3DTEXTURE9 readyOff;
+		LPDIRECT3DTEXTURE9 quit;
 		LPDIRECT3DTEXTURE9 terminate;
 
 		Resource();

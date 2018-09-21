@@ -10,6 +10,8 @@ constexpr POINT c_readyPos = { 800, 0 };
 constexpr POINT c_readySize = { 400, 200 };
 constexpr POINT c_terminatePos = { 0, 800 };
 constexpr POINT c_terminateSize = { 200, 100 };
+constexpr POINT c_quitPos = { c_readyPos.x, c_readyPos.y + c_readySize.y };
+constexpr POINT c_quitSize = { 400, 200 };
 
 
 
@@ -39,6 +41,7 @@ void GomokuRoom::Init()
 
 	CreateTex(L"./Resource/readyOf.png", m_resource.readyOn);
 	CreateTex(L"./Resource/readyOff.png", m_resource.readyOff);
+	CreateTex(L"./Resource/quit.png", m_resource.quit);
 	CreateTex(L"./Resource/terminate.png", m_resource.terminate);
 
 	AttachConnectorReturner();
@@ -47,13 +50,6 @@ void GomokuRoom::Init()
 
 void GomokuRoom::Update()
 {
-	if (g_inputDevice.IsKeyDown(VK_ESCAPE))
-	{
-		arJSON oJSON;
-		oJSON["Message"] = "LeaveRoom";
-		__ar_send(*m_serverConnector, oJSON);
-	}
-
 	auto GomokuAttack = [this](int x, int y)
 	{
 		arJSON oJSON;
@@ -102,6 +98,15 @@ void GomokuRoom::Update()
 				__ar_send(*m_serverConnector, oJSON);
 			}
 		}
+		//Quit
+		else
+		if (c_quitPos.x <= mousePos.x && mousePos.x < c_quitPos.x + c_quitSize.x &&
+			c_quitPos.y <= mousePos.y && mousePos.y < c_quitPos.y + c_quitSize.y)
+		{
+			arJSON oJSON;
+			oJSON["Message"] = "LeaveRoom";
+			__ar_send(*m_serverConnector, oJSON);
+		}
 
 		//terminate
 		else
@@ -132,6 +137,7 @@ void GomokuRoom::Render()
 
 	Draw(m_resource.readyOff, c_readyPos.x, c_readyPos.y);
 	Draw(m_resource.terminate, c_terminatePos.x, c_terminatePos.y);
+	Draw(m_resource.quit, c_quitPos.x, c_quitPos.y);
 
 	g_sprite->End();
 }
@@ -266,6 +272,7 @@ GomokuRoom::Resource::Resource()
 
 	, readyOn(nullptr)
 	, readyOff(nullptr)
+	, quit(nullptr)
 	, terminate(nullptr)
 {
 }
@@ -278,5 +285,6 @@ GomokuRoom::Resource::~Resource()
 
 	if (readyOn)	readyOn->Release();
 	if (readyOff)	readyOff->Release();
+	if (quit)		quit->Release();
 	if (terminate)	terminate->Release();
 }

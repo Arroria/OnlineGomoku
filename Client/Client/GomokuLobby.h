@@ -32,5 +32,17 @@ private:
 
 	std::mutex m_mtxRoomList;
 	std::map<int, std::string> m_roomList;
+
+
+	struct Resource
+	{
+		LPD3DXFONT font;
+		LPDIRECT3DTEXTURE9 list;
+		LPDIRECT3DTEXTURE9 quit;
+		LPDIRECT3DTEXTURE9 create;
+
+		Resource();
+		~Resource();
+	} m_resource;
 };
 
