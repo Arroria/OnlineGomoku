@@ -6,14 +6,16 @@
 #include "GomokuRoom.h"
 
 
+constexpr POINT c_listBarStartPos = { 0, 0 };
+constexpr POINT c_listBarSize = { 780, 80 };
+constexpr size_t c_listBarInterval = 120;
 
-constexpr POINT c_createPos = { 0, 0 };
-constexpr POINT c_createSize = { 400, 200 };
-constexpr POINT c_quitPos = { c_createPos.x + c_createSize.x, c_createPos.y };
-constexpr POINT c_quitSize = { 400, 200 };
-
-constexpr POINT c_roomListPos = { 0, c_createPos.y + c_createSize.y };
-constexpr POINT c_roomListSize = { 1000, 100 };
+constexpr POINT c_createPos = { 800, 400 };
+constexpr POINT c_createRealPos = { 820, 420 };
+constexpr POINT c_createSize = { 360, 160 };
+constexpr POINT c_exitPos = { 800, 600 };
+constexpr POINT c_exitRealPos = { 820, 620 };
+constexpr POINT c_exitSize = { 360, 160 };
 
 
 
@@ -35,9 +37,11 @@ void GomokuLobby::Init()
 	
 	_CreateFont(20, L"", m_resource.font);
 
-	CreateTex(L"./Resource/quit.png", m_resource.quit);
-	CreateTex(L"./Resource/createRoom.png", m_resource.create);
-	CreateTex(L"./Resource/roomList.png", m_resource.list);
+	CreateTex(L"./Resource/lobby/background.png", m_resource.background);
+
+	CreateTex(L"./Resource/lobby/listBar.png", m_resource.listBar);
+	CreateTex(L"./Resource/lobby/create.png", m_resource.create);
+	CreateTex(L"./Resource/lobby/exit.png", m_resource.exit);
 
 
 
@@ -49,11 +53,18 @@ void GomokuLobby::Update()
 {
 	if (g_inputDevice.IsKeyDown(VK_LBUTTON))
 	{
-		POINT mousePos = g_inputDevice.MousePos();
-		
-		//Create Room
-		if (c_createPos.x <= mousePos.x && mousePos.x < c_createPos.x + c_createSize.x &&
-			c_createPos.y <= mousePos.y && mousePos.y < c_createPos.y + c_createSize.y)
+		const POINT mousePos = g_inputDevice.MousePos();
+		auto IsMouseIn = [&mousePos](int left, int top, int right, int bottom)->bool
+		{
+			return
+				left <= mousePos.x &&
+				top <= mousePos.y &&
+				mousePos.x < right &&
+				mousePos.y < bottom;
+		};
+
+		//Create room
+		if (IsMouseIn(c_createRealPos.x, c_createRealPos.y, c_createRealPos.x + c_createSize.x, c_createRealPos.y + c_createSize.y))
 		{
 			arJSON oJSON;
 			oJSON["Message"] = "CreateRoom";
@@ -77,10 +88,8 @@ void GomokuLobby::Update()
 
 			locked_cout << "Lobby >> Create Room..." << endl;
 		}
-		//Quit
-		else
-		if (c_quitPos.x <= mousePos.x && mousePos.x < c_quitPos.x + c_quitSize.x &&
-			c_quitPos.y <= mousePos.y && mousePos.y < c_quitPos.y + c_quitSize.y)
+		//Exit
+		else if (IsMouseIn(c_exitRealPos.x, c_exitRealPos.y, c_exitRealPos.x + c_exitSize.x, c_exitRealPos.y + c_exitSize.y))
 		{
 			arJSON oJSON;
 			oJSON["Message"] = "LeaveLobby";
@@ -88,51 +97,36 @@ void GomokuLobby::Update()
 
 			locked_cout << "Lobby >> Leave Lobby..." << endl;
 		}
+		//Enter room(room list)
 		else
 		{
-			//List Click (Enter the room)
 			mutex_lock_guard lockerR(m_mtxRoomList);
-			if (m_roomList.size())
+			for (int index = 0; index < m_roomList.size(); index++)
 			{
-				if (c_roomListPos.x <= mousePos.x && mousePos.x < c_roomListPos.x + c_roomListSize.x &&
-					c_roomListPos.y <= mousePos.y && mousePos.y < c_roomListPos.y + c_roomListSize.y * m_roomList.size())
+				if (IsMouseIn(c_listBarStartPos.x + 10, c_listBarStartPos.y + 10 + index * c_listBarInterval,
+					c_listBarStartPos.x + 10 + c_listBarSize.x, c_listBarStartPos.y + 10 + c_listBarSize.y + index * c_listBarInterval))
 				{
-					int index = (mousePos.y - c_roomListPos.y) / c_roomListSize.y;
-					if (0 <= index && index < m_roomList.size())
+					auto EnterRoomPlease = [this](int id)
 					{
-						int id = -1;
-						for (auto& iter : m_roomList)
+						arJSON oJSON;
+						oJSON["Message"] = "EnterRoom";
+						arJSON roomJSON;
 						{
-							if (!index)
-							{
-								id = iter.first;
-								break;
-							}
-							index--;
+							roomJSON["ID"] = id;
 						}
+						oJSON["Room"] = roomJSON;
+						__ar_send(*m_serverConnector, oJSON);
 
-						auto EnterRoomPlease = [this](int id)
-						{
-							arJSON oJSON;
-							oJSON["Message"] = "EnterRoom";
-							arJSON roomJSON;
-							{
-								roomJSON["ID"] = id;
-							}
-							oJSON["Room"] = roomJSON;
-							__ar_send(*m_serverConnector, oJSON);
-
-							locked_cout << "Lobby >> Room Enter..." << endl;
-						};
-						if (id >= 0)
-							EnterRoomPlease(id);
-					}
+						locked_cout << "Lobby >> Room Enter..." << endl;
+					};
+					EnterRoomPlease(index);
+					break;
 				}
 			}
 		}
 	}
 
-	if (g_inputDevice.IsKeyDown('1'))
+	if (g_inputDevice.IsKeyDown(VK_NUMPAD1))
 	{
 		cout_region_lock;
 		cout << "[ Room List ]" << endl;
@@ -163,20 +157,24 @@ void GomokuLobby::Render()
 	auto Draw = [](LPDIRECT3DTEXTURE9 tex, int x, int y) { g_sprite->Draw(tex, nullptr, nullptr, &D3DXVECTOR3(x, y, 0), D3DXCOLOR(1, 1, 1, 1)); };
 
 
+	Draw(m_resource.background, 0, 0);
+	
 	Draw(m_resource.create, c_createPos.x, c_createPos.y);
-	Draw(m_resource.quit, c_quitPos.x, c_quitPos.y);
-	std::lock_guard<std::mutex> locker(m_mtxRoomList);
-	int count = 0;
-	for (auto& iter : m_roomList)
+	Draw(m_resource.exit, c_exitPos.x, c_exitPos.y);
 	{
-		Draw(m_resource.list, c_roomListPos.x, c_roomListPos.y + c_roomListSize.y * count);
-		
-		std::wstring id = std::to_wstring(iter.first);
-		std::string name = iter.second;
-		TextW(m_resource.font, c_roomListPos.x + 50, c_roomListPos.y + c_roomListSize.y * count + 25, id, DT_NOCLIP | DT_LEFT | DT_CENTER);
-		TextA(m_resource.font, c_roomListPos.x + 250, c_roomListPos.y + c_roomListSize.y * count + 25, name, DT_NOCLIP | DT_LEFT | DT_CENTER);
+		std::lock_guard<std::mutex> locker(m_mtxRoomList);
+		int count = 0;
+		for (auto& iter : m_roomList)
+		{
+			Draw(m_resource.listBar, c_listBarStartPos.x, c_listBarStartPos.y + c_listBarInterval * count);
 
-		count++;
+			std::wstring id = std::to_wstring(iter.first);
+			std::string name = iter.second;
+			//TextW(m_resource.font, c_roomListPos.x + 50, c_roomListPos.y + c_roomListSize.y * count + 25, id, DT_NOCLIP | DT_LEFT | DT_CENTER);
+			//TextA(m_resource.font, c_roomListPos.x + 250, c_roomListPos.y + c_roomListSize.y * count + 25, name, DT_NOCLIP | DT_LEFT | DT_CENTER);
+
+			count++;
+		}
 	}
 
 	g_sprite->End();
@@ -319,18 +317,21 @@ bool GomokuLobby::RoomDestroyed(const arJSON & iJSON)
 
 
 GomokuLobby::Resource::Resource()
-	: font(nullptr)
-	, list(nullptr)
-	, quit(nullptr)
+	: background(nullptr)
+	
+	, font(nullptr)
+	, listBar(nullptr)
 	, create(nullptr)
+	, exit(nullptr)
 {
 }
 
 GomokuLobby::Resource::~Resource()
 {
-	if (font)	font->Release();
+	if (background)	background->Release();
 
-	if (list)	list->Release();
-	if (quit)	quit->Release();
-	if (create)	create->Release();
+	if (font)		font->Release();
+	if (listBar)	listBar->Release();
+	if (create)		create->Release();
+	if (exit)		exit->Release();
 }

@@ -36,10 +36,12 @@ private:
 
 	struct Resource
 	{
+		LPDIRECT3DTEXTURE9 background;
+		
 		LPD3DXFONT font;
-		LPDIRECT3DTEXTURE9 list;
-		LPDIRECT3DTEXTURE9 quit;
+		LPDIRECT3DTEXTURE9 listBar;
 		LPDIRECT3DTEXTURE9 create;
+		LPDIRECT3DTEXTURE9 exit;
 
 		Resource();
 		~Resource();

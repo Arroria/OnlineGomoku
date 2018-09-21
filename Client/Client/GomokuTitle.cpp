@@ -14,8 +14,8 @@ constexpr POINT c_onlinePlayPos		= c_buttonPos;
 constexpr POINT c_onlinePlaySize	= c_buttonSize;
 constexpr POINT c_offlinePlayPos	= { c_onlinePlayPos.x, c_onlinePlayPos.y + c_buttonInterval };
 constexpr POINT c_offlinePlaySize	= c_buttonSize;
-constexpr POINT c_quitPos			= { c_offlinePlayPos.x, c_offlinePlayPos.y + c_buttonInterval };
-constexpr POINT c_quitSize			= c_buttonSize;
+constexpr POINT c_exitPos			= { c_offlinePlayPos.x, c_offlinePlayPos.y + c_buttonInterval };
+constexpr POINT c_exitSize			= c_buttonSize;
 
 
 
@@ -69,6 +69,7 @@ void GomokuTitle::Update()
 				AsyncConnector* serverConnector = new AsyncConnector(mySocket, serverAddress);
 				serverConnector->Run();
 				SntInst(SceneManager).ChangeScene(new GomokuLobby(serverConnector));
+				return;
 			}
 			else
 				locked_cout << "Server connect failed" << endl;
@@ -79,7 +80,7 @@ void GomokuTitle::Update()
 			locked_cout << "안만들었어!" << endl;
 		}
 		//Quit
-		else if (IsMouseIn(c_quitPos.x, c_quitPos.y, c_quitPos.x + c_quitSize.x, c_quitPos.y + c_quitSize.y))
+		else if (IsMouseIn(c_exitPos.x, c_exitPos.y, c_exitPos.x + c_exitSize.x, c_exitPos.y + c_exitSize.y))
 		{
 			locked_cout << "종료할께!" << endl;
 			PostQuitMessage(0);
@@ -95,7 +96,7 @@ void GomokuTitle::Render()
 	Draw(m_resource.background, c_backgroundPos.x, c_backgroundPos.y);
 	Draw(m_resource.onlinePlay, c_onlinePlayPos.x, c_onlinePlayPos.y);
 	Draw(m_resource.offlinePlay, c_offlinePlayPos.x, c_offlinePlayPos.y);
-	Draw(m_resource.quit, c_quitPos.x, c_quitPos.y);
+	Draw(m_resource.quit, c_exitPos.x, c_exitPos.y);
 
 	g_sprite->End();
 }

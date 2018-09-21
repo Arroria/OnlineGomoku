@@ -10,8 +10,8 @@ constexpr POINT c_readyPos = { 800, 0 };
 constexpr POINT c_readySize = { 400, 200 };
 constexpr POINT c_terminatePos = { 0, 800 };
 constexpr POINT c_terminateSize = { 200, 100 };
-constexpr POINT c_quitPos = { c_readyPos.x, c_readyPos.y + c_readySize.y };
-constexpr POINT c_quitSize = { 400, 200 };
+constexpr POINT c_exitPos = { c_readyPos.x, c_readyPos.y + c_readySize.y };
+constexpr POINT c_exitSize = { 400, 200 };
 
 
 
@@ -100,8 +100,8 @@ void GomokuRoom::Update()
 		}
 		//Quit
 		else
-		if (c_quitPos.x <= mousePos.x && mousePos.x < c_quitPos.x + c_quitSize.x &&
-			c_quitPos.y <= mousePos.y && mousePos.y < c_quitPos.y + c_quitSize.y)
+		if (c_exitPos.x <= mousePos.x && mousePos.x < c_exitPos.x + c_exitSize.x &&
+			c_exitPos.y <= mousePos.y && mousePos.y < c_exitPos.y + c_exitSize.y)
 		{
 			arJSON oJSON;
 			oJSON["Message"] = "LeaveRoom";
@@ -137,7 +137,7 @@ void GomokuRoom::Render()
 
 	Draw(m_resource.readyOff, c_readyPos.x, c_readyPos.y);
 	Draw(m_resource.terminate, c_terminatePos.x, c_terminatePos.y);
-	Draw(m_resource.quit, c_quitPos.x, c_quitPos.y);
+	Draw(m_resource.quit, c_exitPos.x, c_exitPos.y);
 
 	g_sprite->End();
 }
