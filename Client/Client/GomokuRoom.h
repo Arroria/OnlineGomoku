@@ -37,5 +37,19 @@ private:
 
 	GomokuBoard m_gomokuBoard;
 	bool m_playerReady[2];
+
+	struct Resource
+	{
+		LPDIRECT3DTEXTURE9 board;
+		LPDIRECT3DTEXTURE9 stoneW;
+		LPDIRECT3DTEXTURE9 stoneB;
+
+		LPDIRECT3DTEXTURE9 readyOn;
+		LPDIRECT3DTEXTURE9 readyOff;
+		LPDIRECT3DTEXTURE9 terminate;
+
+		Resource();
+		~Resource();
+	} m_resource;
 };
 

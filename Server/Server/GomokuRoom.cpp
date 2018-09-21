@@ -212,6 +212,7 @@ bool GomokuRoom::Ready(AsyncConnector & user, const arJSON& iJSON)
 			oJSON["Message"] = "GomokuStart";
 			if (m_host)		__ar_send(*m_host, oJSON);
 			if (m_guest)	__ar_send(*m_guest, oJSON);
+			m_ready[0] = m_ready[1] = false;
 		}
 	}
 	return false;

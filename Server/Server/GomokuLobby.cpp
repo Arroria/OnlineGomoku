@@ -27,7 +27,7 @@ void GomokuLobby::EnterLobby(AsyncConnector * user)
 		mutex_lock_guard locker(m_mtxUserList);
 		m_userList.insert(user);
 	}
-	server_log_error("Lobby >> Lobby enter success " << user->ToStr() << endl);
+	server_log_note("Lobby >> Lobby enter success " << user->ToStr() << endl);
 
 
 	//send room list for registed user

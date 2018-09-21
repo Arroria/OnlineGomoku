@@ -5,6 +5,15 @@
 #include "GomokuLobby.h"
 #include "GomokuTitle.h"
 
+
+constexpr POINT c_readyPos = { 800, 0 };
+constexpr POINT c_readySize = { 400, 200 };
+constexpr POINT c_terminatePos = { 0, 800 };
+constexpr POINT c_terminateSize = { 200, 100 };
+
+
+
+
 GomokuRoom::GomokuRoom(AsyncConnector* serverConnector, int id, const std::string& name)
 	: m_serverConnector(serverConnector)
 	, m_id(id)
@@ -22,34 +31,28 @@ GomokuRoom::~GomokuRoom()
 
 void GomokuRoom::Init()
 {
+	auto CreateTex = [](const std::wstring& path, LPDIRECT3DTEXTURE9& target){ D3DXCreateTextureFromFileExW(DEVICE, path.data(), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, NULL, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, NULL, nullptr, nullptr, &target); };
+	
+	CreateTex(L"./Resource/gomokuBoard.png", m_resource.board);
+	CreateTex(L"./Resource/whiteStone.png", m_resource.stoneW);
+	CreateTex(L"./Resource/blackStone.png", m_resource.stoneB);
+
+	CreateTex(L"./Resource/readyOf.png", m_resource.readyOn);
+	CreateTex(L"./Resource/readyOff.png", m_resource.readyOff);
+	CreateTex(L"./Resource/terminate.png", m_resource.terminate);
+
 	AttachConnectorReturner();
 	locked_cout << "Room >> Enter" << endl;
 }
 
 void GomokuRoom::Update()
 {
-	if (g_inputDevice.IsKeyDown('1'))
+	if (g_inputDevice.IsKeyDown(VK_ESCAPE))
 	{
 		arJSON oJSON;
 		oJSON["Message"] = "LeaveRoom";
 		__ar_send(*m_serverConnector, oJSON);
 	}
-
-	if (g_inputDevice.IsKeyDown('2'))
-	{
-		arJSON oJSON;
-		oJSON["Message"] = "Ready";
-		oJSON["Ready"] = 1;
-		__ar_send(*m_serverConnector, oJSON);
-	}
-	if (g_inputDevice.IsKeyDown('3'))
-	{
-		arJSON oJSON;
-		oJSON["Message"] = "Ready";
-		oJSON["Ready"] = 0;
-		__ar_send(*m_serverConnector, oJSON);
-	}
-
 
 	auto GomokuAttack = [this](int x, int y)
 	{
@@ -63,24 +66,74 @@ void GomokuRoom::Update()
 		oJSON["Attack"] = attackJSON;
 		__ar_send(*m_serverConnector, oJSON);
 	};
-	if (g_inputDevice.IsKeyDown('4'))	GomokuAttack(7, 7);
-	if (g_inputDevice.IsKeyDown('5'))	GomokuAttack(6, 7);
-	if (g_inputDevice.IsKeyDown('6'))	GomokuAttack(8, 4);
-	if (g_inputDevice.IsKeyDown('7'))	GomokuAttack(0, 0);
-	if (g_inputDevice.IsKeyDown('8'))	GomokuAttack(14, 14);
+	if (g_inputDevice.IsKeyDown(VK_LBUTTON))
+	{
+		POINT mousePos = g_inputDevice.MousePos();
+		
+		//Gomoku Board
+		if (25 <= mousePos.x && mousePos.x < 25 + 50 * 15 &&
+			25 <= mousePos.y && mousePos.y < 25 + 50 * 15)
+		{
+			POINT gomokuPos;
+			gomokuPos.x = (mousePos.x - 25) / 50;
+			gomokuPos.y = (mousePos.y - 25) / 50;
 
-	if (g_inputDevice.IsKeyDown('Q'))	GomokuAttack(0, 14);
-	if (g_inputDevice.IsKeyDown('W'))	GomokuAttack(1, 14);
-	if (g_inputDevice.IsKeyDown('E'))	GomokuAttack(2, 14);
-	if (g_inputDevice.IsKeyDown('R'))	GomokuAttack(3, 14);
-	if (g_inputDevice.IsKeyDown('T'))	GomokuAttack(4, 14);
+			if (0 <= gomokuPos.x && gomokuPos.x < GomokuBoard::boardSizeX &&
+				0 <= gomokuPos.y && gomokuPos.y < GomokuBoard::boardSizeY)
+				GomokuAttack(gomokuPos.x, gomokuPos.y);
+		}
+		//Ready
+		else
+		if (c_readyPos.x <= mousePos.x && mousePos.x < c_readyPos.x + c_readySize.x &&
+			c_readyPos.y <= mousePos.y && mousePos.y < c_readyPos.y + c_readySize.y)
+		{
+			if (true)
+			{
+				arJSON oJSON;
+				oJSON["Message"] = "Ready";
+				oJSON["Ready"] = 1;
+				__ar_send(*m_serverConnector, oJSON);
+			}
+			else
+			{
+				arJSON oJSON;
+				oJSON["Message"] = "Ready";
+				oJSON["Ready"] = 1;
+				__ar_send(*m_serverConnector, oJSON);
+			}
+		}
 
+		//terminate
+		else
+		if (c_terminatePos.x <= c_terminatePos.x && mousePos.x < c_terminatePos.x + c_terminateSize.x &&
+			c_terminatePos.y <= c_terminatePos.y && mousePos.y < c_terminatePos.y + c_terminateSize.y)
+			std::terminate();
+	}
 	if (g_inputDevice.IsKeyDown('0'))
 		std::terminate();
 }
 
 void GomokuRoom::Render()
 {
+	g_sprite->Begin(D3DXSPRITE_ALPHABLEND);
+	auto Draw = [](LPDIRECT3DTEXTURE9 tex, int x, int y) { g_sprite->Draw(tex, nullptr, nullptr, &D3DXVECTOR3(x, y, 0), D3DXCOLOR(1, 1, 1, 1)); };
+	
+	Draw(m_resource.board, 0, 0);
+	for (int y = 0; y < m_gomokuBoard.boardSizeY; y++)
+	{
+		for (int x = 0; x < m_gomokuBoard.boardSizeX; x++)
+		{
+			int xPos = x * 50 + 25;
+			int yPos = y * 50 + 25;
+				 if (m_gomokuBoard.IsBlack(x, y))	Draw(m_resource.stoneB, xPos, yPos);
+			else if (m_gomokuBoard.IsWhite(x, y))	Draw(m_resource.stoneW, xPos, yPos);
+		}
+	}
+
+	Draw(m_resource.readyOff, c_readyPos.x, c_readyPos.y);
+	Draw(m_resource.terminate, c_terminatePos.x, c_terminatePos.y);
+
+	g_sprite->End();
 }
 
 void GomokuRoom::Release()
@@ -196,6 +249,34 @@ bool GomokuRoom::GomokuEnd(const arJSON & iJSON)
 		return false;
 
 	const std::string& winner = iJSON["Winner"].Str();
-	locked_cout << "Room >> Gomoku winner is " << winner << endl;
+	locked_cout << "Room >> Gomoku winner is " << winner << endl
+				<< "Room >> Gomoku winner is " << winner << endl
+				<< "Room >> Gomoku winner is " << winner << endl;
 	return false;
+}
+
+
+
+
+
+GomokuRoom::Resource::Resource()
+	: board(nullptr)
+	, stoneW(nullptr)
+	, stoneB(nullptr)
+
+	, readyOn(nullptr)
+	, readyOff(nullptr)
+	, terminate(nullptr)
+{
+}
+
+GomokuRoom::Resource::~Resource()
+{
+	if (board)	board->Release();
+	if (stoneW)	stoneW->Release();
+	if (stoneB)	stoneB->Release();
+
+	if (readyOn)	readyOn->Release();
+	if (readyOff)	readyOff->Release();
+	if (terminate)	terminate->Release();
 }
