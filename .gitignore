@@ -1,5 +1,5 @@
-AtlasSprite/Resource/
-.vs/
-[Dd]ebug/
-[Rr]elease/
-[Rr]eleases/
+**/.vs
+**/[Dd]ebug
+**/[Rr]elease
+**/[Rr]eleases
+**/[Rr]esource
