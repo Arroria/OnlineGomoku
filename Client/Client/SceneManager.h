@@ -10,6 +10,7 @@ public:
 	~SceneManager();
 
 public:
+	inline bool IsDontRender() { return m_ignoreNextRender; }
 	inline void DontRenderNext() { m_ignoreNextRender = true; }
 	void ChangeScene(Scene* nextScene, bool ignoreRender = true);
 

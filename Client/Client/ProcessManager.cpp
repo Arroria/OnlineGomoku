@@ -185,6 +185,7 @@ WPARAM ProcessManager::Loop()
 				FrameTimer::duration renderDeltaTime = currTime - prevRenderTime;
 				if (!m_renderFPSLimite || renderDeltaTime * m_renderFPSLimite >= std::chrono::seconds(1))
 				{
+					prevRenderTime = currTime;
 					if (m_d3dxDevice)
 					{
 						if (SUCCEEDED( m_d3dxDevice->Clear(0, NULL, D3DCLEAR_STENCIL | D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DXCOLOR(0x2b / 256.f, 0x65 / 256.f, 0xec / 256.f, 1), 1, 0) ) &&

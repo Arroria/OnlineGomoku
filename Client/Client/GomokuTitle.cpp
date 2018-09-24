@@ -57,8 +57,8 @@ void GomokuTitle::Update()
 		if (IsMouseIn(c_onlinePlayPos.x, c_onlinePlayPos.y, c_onlinePlayPos.x + c_onlinePlaySize.x, c_onlinePlayPos.y + c_onlinePlaySize.y))
 		{
 			sockaddr_in serverAddress;
-			__ar_make_sockaddrin(AF_INET, htonl(INADDR_LOOPBACK), htons(5656), &serverAddress);
-			///__ar_make_sockaddrin(AF_INET, inet_addr("222.110.147.51"), htons(5656), &serverAddress);
+			///__ar_make_sockaddrin(AF_INET, htonl(INADDR_LOOPBACK), htons(5656), &serverAddress);
+			__ar_make_sockaddrin(AF_INET, inet_addr("222.108.204.82"), htons(5656), &serverAddress);
 			{ locked_cout << "Server connecting..." << endl; }
 
 			SOCKET mySocket;

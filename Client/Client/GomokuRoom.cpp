@@ -6,14 +6,21 @@
 #include "GomokuTitle.h"
 
 
-constexpr POINT c_readyPos = { 800, 0 };
-constexpr POINT c_readySize = { 400, 200 };
-constexpr POINT c_terminatePos = { 0, 800 };
-constexpr POINT c_terminateSize = { 200, 100 };
-constexpr POINT c_exitPos = { c_readyPos.x, c_readyPos.y + c_readySize.y };
-constexpr POINT c_exitSize = { 400, 200 };
+constexpr POINT c_playerPos = { 800, 0 };
+constexpr POINT c_playerSize = { 400, 100 };
+constexpr POINT c_buttonPos = { 800, 400 };
+constexpr POINT c_buttonSize = { 400, 200 };
+constexpr POINT c_buttonOffset = { 20, 20 };
+constexpr POINT c_buttonRigidSize = { 360, 160 };
 
 
+constexpr POINT c_hostPos = c_playerPos;
+constexpr POINT c_guestPos = { c_hostPos.x, c_hostPos.y + c_playerSize.y };
+
+constexpr POINT c_readyPos = c_buttonPos;
+constexpr POINT c_exitPos = { c_readyPos.x, c_readyPos.y + c_buttonSize.y };
+constexpr POINT c_readyRigidPos = { c_readyPos.x + c_buttonOffset.x, c_readyPos.y + c_buttonOffset.y };
+constexpr POINT c_exitRigidPos = { c_exitPos.x + c_buttonOffset.x, c_exitPos.y + c_buttonOffset.y };
 
 
 GomokuRoom::GomokuRoom(AsyncConnector* serverConnector, int id, const std::string& name)
@@ -35,14 +42,19 @@ void GomokuRoom::Init()
 {
 	auto CreateTex = [](const std::wstring& path, LPDIRECT3DTEXTURE9& target){ D3DXCreateTextureFromFileExW(DEVICE, path.data(), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, NULL, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, NULL, nullptr, nullptr, &target); };
 	
-	CreateTex(L"./Resource/gomokuBoard.png", m_resource.board);
-	CreateTex(L"./Resource/whiteStone.png", m_resource.stoneW);
-	CreateTex(L"./Resource/blackStone.png", m_resource.stoneB);
-
-	CreateTex(L"./Resource/readyOf.png", m_resource.readyOn);
-	CreateTex(L"./Resource/readyOff.png", m_resource.readyOff);
-	CreateTex(L"./Resource/quit.png", m_resource.quit);
-	CreateTex(L"./Resource/terminate.png", m_resource.terminate);
+	CreateTex(L"./Resource/room/background.png",	m_resource.background);
+	CreateTex(L"./Resource/room/board.png",			m_resource.board);
+								
+	CreateTex(L"./Resource/room/guest.png",			m_resource.guest);
+	CreateTex(L"./Resource/room/host.png",			m_resource.host);
+	
+	CreateTex(L"./Resource/room/ready.png",			m_resource.ready);
+	CreateTex(L"./Resource/room/readySign.png",		m_resource.readyMark);
+	CreateTex(L"./Resource/room/exit.png",			m_resource.quit);
+	
+	CreateTex(L"./Resource/room/whiteStone.png",	m_resource.stoneW);
+	CreateTex(L"./Resource/room/blackStone.png",	m_resource.stoneB);
+	CreateTex(L"./Resource/room/lastSign.png",		m_resource.stoneMarker);
 
 	AttachConnectorReturner();
 	locked_cout << "Room >> Enter" << endl;
@@ -64,11 +76,18 @@ void GomokuRoom::Update()
 	};
 	if (g_inputDevice.IsKeyDown(VK_LBUTTON))
 	{
-		POINT mousePos = g_inputDevice.MousePos();
-		
+		const POINT mousePos = g_inputDevice.MousePos();
+		auto IsMouseIn = [&mousePos](int left, int top, int right, int bottom)->bool
+		{
+			return
+				left <= mousePos.x &&
+				top <= mousePos.y &&
+				mousePos.x < right &&
+				mousePos.y < bottom;
+		};
+
 		//Gomoku Board
-		if (25 <= mousePos.x && mousePos.x < 25 + 50 * 15 &&
-			25 <= mousePos.y && mousePos.y < 25 + 50 * 15)
+		if (IsMouseIn(25, 25, 25 + 50 * 15, 25 + 50 * 15))
 		{
 			POINT gomokuPos;
 			gomokuPos.x = (mousePos.x - 25) / 50;
@@ -80,8 +99,7 @@ void GomokuRoom::Update()
 		}
 		//Ready
 		else
-		if (c_readyPos.x <= mousePos.x && mousePos.x < c_readyPos.x + c_readySize.x &&
-			c_readyPos.y <= mousePos.y && mousePos.y < c_readyPos.y + c_readySize.y)
+		if (IsMouseIn(c_readyRigidPos.x, c_readyRigidPos.y, c_readyRigidPos.x + c_buttonRigidSize.x, c_readyRigidPos.y + c_buttonRigidSize.y))
 		{
 			if (true)
 			{
@@ -100,19 +118,12 @@ void GomokuRoom::Update()
 		}
 		//Quit
 		else
-		if (c_exitPos.x <= mousePos.x && mousePos.x < c_exitPos.x + c_exitSize.x &&
-			c_exitPos.y <= mousePos.y && mousePos.y < c_exitPos.y + c_exitSize.y)
+		if (IsMouseIn(c_exitRigidPos.x, c_exitRigidPos.y, c_exitRigidPos.x + c_buttonRigidSize.x, c_exitRigidPos.y + c_buttonRigidSize.y))
 		{
 			arJSON oJSON;
 			oJSON["Message"] = "LeaveRoom";
 			__ar_send(*m_serverConnector, oJSON);
 		}
-
-		//terminate
-		else
-		if (c_terminatePos.x <= c_terminatePos.x && mousePos.x < c_terminatePos.x + c_terminateSize.x &&
-			c_terminatePos.y <= c_terminatePos.y && mousePos.y < c_terminatePos.y + c_terminateSize.y)
-			std::terminate();
 	}
 	if (g_inputDevice.IsKeyDown('0'))
 		std::terminate();
@@ -123,6 +134,7 @@ void GomokuRoom::Render()
 	g_sprite->Begin(D3DXSPRITE_ALPHABLEND);
 	auto Draw = [](LPDIRECT3DTEXTURE9 tex, int x, int y) { g_sprite->Draw(tex, nullptr, nullptr, &D3DXVECTOR3(x, y, 0), D3DXCOLOR(1, 1, 1, 1)); };
 	
+	Draw(m_resource.background, 0, 0);
 	Draw(m_resource.board, 0, 0);
 	for (int y = 0; y < m_gomokuBoard.boardSizeY; y++)
 	{
@@ -135,8 +147,16 @@ void GomokuRoom::Render()
 		}
 	}
 
-	Draw(m_resource.readyOff, c_readyPos.x, c_readyPos.y);
-	Draw(m_resource.terminate, c_terminatePos.x, c_terminatePos.y);
+	Draw(m_resource.host, c_hostPos.x, c_hostPos.y);
+	Draw(m_resource.guest, c_guestPos.x, c_guestPos.y);
+	auto DrawReadySign = [&, this](int playerX, int playerY)
+	{
+		Draw(m_resource.readyMark, playerX + c_playerSize.x - 75, playerY + 25);
+	};
+	if (m_playerReady[0])	DrawReadySign(c_hostPos.x, c_hostPos.y);
+	if (m_playerReady[1])	DrawReadySign(c_guestPos.x, c_guestPos.y);
+
+	Draw(m_resource.ready, c_readyPos.x, c_readyPos.y);
 	Draw(m_resource.quit, c_exitPos.x, c_exitPos.y);
 
 	g_sprite->End();
@@ -266,25 +286,35 @@ bool GomokuRoom::GomokuEnd(const arJSON & iJSON)
 
 
 GomokuRoom::Resource::Resource()
-	: board(nullptr)
+	: background(nullptr)
+	, board(nullptr)
+
+	, guest(nullptr)
+	, host(nullptr)
+	
+	, ready(nullptr)
+	, readyMark(nullptr)
+	, quit(nullptr)
+	
 	, stoneW(nullptr)
 	, stoneB(nullptr)
-
-	, readyOn(nullptr)
-	, readyOff(nullptr)
-	, quit(nullptr)
-	, terminate(nullptr)
+	, stoneMarker(nullptr)
 {
 }
 
 GomokuRoom::Resource::~Resource()
 {
-	if (board)	board->Release();
-	if (stoneW)	stoneW->Release();
-	if (stoneB)	stoneB->Release();
-
-	if (readyOn)	readyOn->Release();
-	if (readyOff)	readyOff->Release();
-	if (quit)		quit->Release();
-	if (terminate)	terminate->Release();
+	if (background)		background->Release();
+	if (board)			board->Release();
+	
+	if (guest)			guest->Release();
+	if (host)			host->Release();
+	
+	if (ready)			ready->Release();
+	if (readyMark)		readyMark->Release();
+	if (quit)			quit->Release();
+	
+	if (stoneW)			stoneW->Release();
+	if (stoneB)			stoneB->Release();
+	if (stoneMarker)	stoneMarker->Release();
 }
