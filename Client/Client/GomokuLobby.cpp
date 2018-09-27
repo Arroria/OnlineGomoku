@@ -35,7 +35,7 @@ void GomokuLobby::Init()
 	auto _CreateFont = [](size_t size, const std::wstring& font, LPD3DXFONT& target) { D3DXCreateFontW(DEVICE, size, NULL, FW_DONTCARE, NULL, false, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, font.data(), &target); };
 	auto CreateTex = [](const std::wstring& path, LPDIRECT3DTEXTURE9& target){ D3DXCreateTextureFromFileExW(DEVICE, path.data(), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, NULL, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, NULL, nullptr, nullptr, &target); };
 	
-	_CreateFont(20, L"", m_resource.font);
+	_CreateFont(40, L"", m_resource.font);
 
 	CreateTex(L"./Resource/lobby/background.png", m_resource.background);
 
@@ -131,7 +131,7 @@ void GomokuLobby::Update()
 		cout_region_lock;
 		cout << "[ Room List ]" << endl;
 		for (auto& iter : m_roomList)
-			cout << iter.first << " : " << iter.second << endl;
+			cout << iter.first << " : " << iter.second.name << endl;
 	}
 
 	if (g_inputDevice.IsKeyDown(VK_ESCAPE))
@@ -163,16 +163,21 @@ void GomokuLobby::Render()
 	Draw(m_resource.exit, c_exitPos.x, c_exitPos.y);
 	{
 		std::lock_guard<std::mutex> locker(m_mtxRoomList);
+		auto DrawRoomBar = [&, this](int x, int y, int id, const std::string& name, bool isWaiting)
+		{
+			Draw(m_resource.listBar, x, y);
+			TextA(m_resource.font, x + 40					, y + 50, "ID : " + std::to_string(id)	, DT_NOCLIP | DT_LEFT | DT_VCENTER);
+			TextA(m_resource.font, x + 180					, y + 50, name, DT_NOCLIP | DT_LEFT | DT_VCENTER);
+			TextA(m_resource.font, x + c_listBarSize.x - 40	, y + 50, isWaiting ? "Waiting" : "Playing", DT_NOCLIP | DT_RIGHT | DT_VCENTER);
+		};
+		
 		int count = 0;
 		for (auto& iter : m_roomList)
 		{
-			Draw(m_resource.listBar, c_listBarStartPos.x, c_listBarStartPos.y + c_listBarInterval * count);
+			int id = iter.first;
+			std::string name = iter.second.name;
 
-			std::wstring id = std::to_wstring(iter.first);
-			std::string name = iter.second;
-			//TextW(m_resource.font, c_roomListPos.x + 50, c_roomListPos.y + c_roomListSize.y * count + 25, id, DT_NOCLIP | DT_LEFT | DT_CENTER);
-			//TextA(m_resource.font, c_roomListPos.x + 250, c_roomListPos.y + c_roomListSize.y * count + 25, name, DT_NOCLIP | DT_LEFT | DT_CENTER);
-
+			DrawRoomBar(c_listBarStartPos.x, c_listBarStartPos.y + c_listBarInterval * count, id, name, true);
 			count++;
 		}
 	}
@@ -204,11 +209,10 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 		///else if (iMessage == "JoinRoom")	{ if (EnterRoom(user, iJSON))	return true; }
 		///else 
 
-			 if (iMessage == "RoomCreated")		{ if (RoomCreated(iJSON))	return true; }
+			 if (iMessage == "Room")			{ if (RoomUpdate(iJSON))	return true; }
 		else if (iMessage == "RoomEntered")		{ if (RoomEntered(iJSON))	return true; }
 		else if (iMessage == "LobbyLeaved")		{ if (LobbyLeaved(iJSON))	return true; }
 		else if (iMessage == "RoomList")		{ if (RoomList(iJSON))		return true; }
-		else if (iMessage == "RoomDestroyed")	{ if (RoomDestroyed(iJSON))	return true; }
 		else
 		{ locked_cout << "Lobby >> UnknownMessage recived : " << iMessage << endl; }
 	}
@@ -224,22 +228,43 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 
 
 
-bool GomokuLobby::RoomCreated(const arJSON & iJSON)
+bool GomokuLobby::RoomUpdate(const arJSON & iJSON)
 {
 	if (!iJSON.IsIn("Room"))
 		return false;
 	const arJSON& roomJSON = iJSON["Room"].Sub();
-	if (!roomJSON.IsIn("ID"))
+	if (!roomJSON.IsIn("ID") || !roomJSON.IsIn("IsDestroyed"))
 		return false;
 
-	int id = roomJSON["ID"].Int();
-	std::string name;
-	if (roomJSON.IsIn("Name"))
-		name = roomJSON["Name"].Str();
 
 	mutex_lock_guard lockerR(m_mtxRoomList);
-	m_roomList.insert(std::make_pair(id, name));
-	locked_cout << "Lobby >> Room list updated : created" << endl;
+	int id = roomJSON["ID"].Int();
+	auto iter = m_roomList.find(id);
+	bool iterIsIn = iter != m_roomList.end();
+	if (roomJSON["IsDestroyed"].Int())
+	{
+		if (iterIsIn)
+			m_roomList.erase(iter);
+		return false;
+	}
+	else
+	{
+		GomokuRoomData* room;
+		if (!iterIsIn)
+		{
+			GomokuRoomData _room;
+			m_roomList.insert(std::make_pair(id, _room));
+			auto iters = m_roomList.find(id);
+			if (iters == m_roomList.end())
+				return false;
+			room = &iters->second;
+		}
+		else
+			room = &iter->second;
+
+		if (roomJSON.IsIn("Name"))	room->name = roomJSON["Name"].Str();
+	}
+	locked_cout << "Lobby >> Room list updated" << endl;
 	return false;
 }
 
@@ -291,7 +316,13 @@ bool GomokuLobby::RoomList(const arJSON & iJSON)
 			if (iter.IsIn("Name"))
 				name = iter["Name"].Str();
 
-			m_roomList.insert(std::make_pair(id, name));
+			{
+				GomokuRoomData room;
+				room.id = id;
+				room.name = name;
+
+				m_roomList.insert(std::make_pair(id, room));
+			}
 		}
 		locked_cout << "Lobby >> Room list updated : resetted" << endl;
 	}

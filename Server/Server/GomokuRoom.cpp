@@ -39,7 +39,7 @@ bool GomokuRoom::EnterRoom(AsyncConnector * guest, const std::string & password)
 	mutex_lock_guard locker(m_mtxEnterLeave);
 	if (!m_host || m_guest)
 	{
-		server_log_error("Room >> Guest enter failed by unknown error" << endl);
+		server_log_error("Room >> Guest enter failed by full room enter" << endl);
 		return false;
 	}
 	if (m_password != password)

@@ -1,5 +1,27 @@
 #pragma once
 #include "Scene.h"
+
+
+class GomokuRoomData
+{
+public:
+	enum class State
+	{
+		Waiting,
+		Ready,
+		Playing,
+	};
+
+public:
+	GomokuRoomData() : id(-1), name(), isLocked(false), state(State::Waiting) {}
+
+	int id;
+	std::string name;
+	bool isLocked;
+	State state;
+};
+
+#include <map>
 class GomokuLobby final :
 	public Scene
 {
@@ -21,7 +43,7 @@ private:
 	inline void DetachConnectorReturner() { m_serverConnector->Returner(nullptr); }
 	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
 
-	bool RoomCreated(const arJSON& iJSON);
+	bool RoomUpdate(const arJSON& iJSON);
 	bool RoomEntered(const arJSON& iJSON);
 	bool LobbyLeaved(const arJSON& iJSON);
 	bool RoomList(const arJSON& iJSON);
@@ -31,7 +53,7 @@ private:
 	AsyncConnector * m_serverConnector;
 
 	std::mutex m_mtxRoomList;
-	std::map<int, std::string> m_roomList;
+	std::map<int, GomokuRoomData> m_roomList;
 
 
 	struct Resource

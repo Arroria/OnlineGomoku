@@ -187,6 +187,7 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 		///else 
 
 			 if (iMessage == "RoomLeaved")	{ if (RoomLeaved(iJSON))	return true; }
+		else if (iMessage == "UserDisconnected")
 
 		else if (iMessage == "Ready")		{ if (Ready(iJSON))			return true; }
 		else if (iMessage == "GomokuStart")	{ if (GomokuStart(iJSON))	return true; }
@@ -234,6 +235,7 @@ bool GomokuRoom::GomokuStart(const arJSON & iJSON)
 {
 	locked_cout << "Room >> Game started" << endl;
 	m_gomokuBoard.Clear();
+	m_playerReady[0] = m_playerReady[1] = false;
 	return false;
 }
 

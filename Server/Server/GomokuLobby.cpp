@@ -67,8 +67,13 @@ void GomokuLobby::DestroyRoom(int id)
 		//Broadcast
 		arJSON oJSON;
 		{
-			oJSON["Message"] = "RoomDestroyed";
-			oJSON["RoomDestroyed"] = id;
+			oJSON["Message"] = "Room";
+			arJSON roomJSON;
+			{
+				roomJSON["ID"] = id;
+				roomJSON["IsDestroyed"] = 1;
+			}
+			oJSON["Room"] = roomJSON;
 		}
 		{
 			std::lock_guard<std::mutex> locker(m_mtxUserList);
@@ -178,10 +183,11 @@ bool GomokuLobby::CreateRoom(AsyncConnector & user, int id, const std::string & 
 	//Broadcast
 	arJSON oJSON;
 	{
-		oJSON["Message"] = "RoomCreated";
+		oJSON["Message"] = "Room";
 		arJSON roomJSON;
 		{
 			roomJSON["ID"] = id;
+			roomJSON["IsDestroyed"] = 0;
 			roomJSON["Name"] = name;
 			roomJSON["Locked"] = (password.size() ? 1 : 0);
 		}
