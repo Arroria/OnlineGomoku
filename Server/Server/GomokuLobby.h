@@ -11,6 +11,8 @@ class GomokuLobby
 private:
 	enum class Message
 	{
+		ReadyToInit,
+
 		LeaveLobby,
 		CreateRoom,
 		EnterRoom,
@@ -34,7 +36,7 @@ private:
 	{
 		connector.Returner([this](AsyncConnector & user, int recvResult, SocketBuffer & recvData)->bool { return MessageProcessing(user, recvResult, recvData); });
 	}
-	inline void DetachConnectorReturner(AsyncConnector& connector) const { connector.Returner(nullptr); }
+	inline static void DetachConnectorReturner(AsyncConnector& connector) { connector.Returner(nullptr); }
 	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
 	Message CheckMessage(const std::string& msg) const;
 	bool RemoveUserInUserList(AsyncConnector& user);
@@ -51,20 +53,17 @@ private:
 	bool LeaveLobby(AsyncConnector& user);
 
 	//Broadcast
-	void BCEnterLobby(AsyncConnector& user) const;
-	void BCDestroyRoom(int id) const;
+	void BCUserClientInit(AsyncConnector& user) const;
 
+	void BCDestroyRoom(int id) const;
 	void BCCreateRoom(AsyncConnector& user, int id, const std::string& name, bool isLocked) const;
 	void BCEnterRoom(AsyncConnector& user, int id, const std::string& name, bool isLocked) const;
 	void BCEnterRoom(AsyncConnector& user, const arJSON& roomJSON) const;
 	void BCLeaveLobby(AsyncConnector& user) const;
 
-
-	arJSON RoomToJSON(GomokuRoom& roomData);
-
 private:
 	std::set<AsyncConnector*> m_userList;
 	std::vector<GomokuRoom*> m_roomList;
-	mutable std::mutex m_mtxMsgProcessing;
+	mutable std::mutex m_mtxProcessing;
 };
 

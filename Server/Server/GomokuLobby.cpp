@@ -24,20 +24,21 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 			recvData[recvResult] = NULL;
 			if (JSON_To_arJSON(recvData.Buffer(), iJSON))
 			{
-				server_log_error("JSON Errored by received message from " << user.ToStr() << " in Lobby "<< endl);
+				server_log_error("JSON Errored by received message from " << user.ToStr() << " in Lobby" << endl);
 				return true;
 			}
 		
 			if ((msg = CheckMessage(iJSON["Message"].Str())) == Message::Invalid)
 			{
-				server_log_error("An undefined message(" << static_cast<int>(msg) << ") was received by Lobby from the "<< user.ToStr() << endl);
+				server_log_error("An undefined message(" << static_cast<int>(msg) << ") was received by Lobby from the " << user.ToStr() << endl);
 				return false;
 			}
 		}
-		mutex_lock_guard actionLocker(m_mtxMsgProcessing);
+		mutex_lock_guard actionLocker(m_mtxProcessing);
 		
 		switch (msg)
 		{
+		case GomokuLobby::Message::ReadyToInit:	BCUserClientInit(user);	break;
 		case GomokuLobby::Message::LeaveLobby:	if (LeaveLobby(user, iJSON))	return true; break;
 		case GomokuLobby::Message::CreateRoom:	if (CreateRoom(user, iJSON))	return true; break;
 		case GomokuLobby::Message::EnterRoom:	if (EnterRoom(user, iJSON))		return true; break;
@@ -48,7 +49,7 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 	}
 	else
 	{
-		mutex_lock_guard actionLocker(m_mtxMsgProcessing);
+		mutex_lock_guard actionLocker(m_mtxProcessing);
 
 		DetachConnectorReturner(user);
 		RemoveUserInUserList(user);
@@ -58,10 +59,10 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 	return false;
 }
 
-//µü º¸¸é ¾Í
 GomokuLobby::Message GomokuLobby::CheckMessage(const std::string & msg) const
 {
 	if (msg.empty())				return Message::Invalid;
+	else if (msg == "ReadyToInit")	return Message::ReadyToInit;
 	else if (msg == "LeaveLobby")	return Message::LeaveLobby;
 	else if (msg == "CreateRoom")	return Message::CreateRoom;
 	else if (msg == "EnterRoom")	return Message::EnterRoom;
@@ -151,19 +152,17 @@ int GomokuLobby::GetEmptyRoomID() const
 
 bool GomokuLobby::EnterLobby(AsyncConnector& user)
 {
-	mutex_lock_guard actionLocker(m_mtxMsgProcessing);
+	mutex_lock_guard actionLocker(m_mtxProcessing);
 
 	m_userList.insert(&user);
 	AttachConnectorReturner(user);
 	server_log_note("The user(" << user.ToStr() << ") has joined the lobby" << endl);
-
-	BCEnterLobby(user);
 	return true;
 }
 
 void GomokuLobby::DestroyRoom(int id)
 {
-	mutex_lock_guard actionLocker(m_mtxMsgProcessing);
+	mutex_lock_guard actionLocker(m_mtxProcessing);
 	GomokuRoom*& room = m_roomList[id];
 	if (room)
 	{
@@ -218,7 +217,7 @@ bool GomokuLobby::EnterRoom(AsyncConnector & user, int id, const std::string & p
 
 
 	DetachConnectorReturner(user);
-	if (!room->EnterRoom(&user, password))
+	if (!room->EnterRoom(user, password))
 	{
 		AttachConnectorReturner(user);
 		return false;
@@ -243,7 +242,7 @@ bool GomokuLobby::LeaveLobby(AsyncConnector & user)
 
 
 
-void GomokuLobby::BCEnterLobby(AsyncConnector & user) const
+void GomokuLobby::BCUserClientInit(AsyncConnector & user) const
 {
 	arJSON oJSON;
 	oJSON["Message"] = "RoomListRefresh";

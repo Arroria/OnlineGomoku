@@ -76,7 +76,7 @@ private:
 	AsyncConnector * m_serverConnector;
 
 	std::map<int, GomokuRoomData> m_roomList;
-	mutable std::mutex m_mtxMsgProcessing;
+	mutable std::mutex m_mtxProcessing;
 
 
 	struct Resource

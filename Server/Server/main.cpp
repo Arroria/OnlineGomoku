@@ -24,6 +24,7 @@ int main()
 		sockaddr_in clientAddress;
 		__ar_accept(&socketError, mySocket, clientSocket, clientAddress);
 
+		legion_off
 		{
 			cout_region_lock;
 			cout << "Server connected >> Socket : " << clientSocket << " >> Address : " << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;
@@ -31,6 +32,7 @@ int main()
 
 		AsyncConnector* client = new AsyncConnector(clientSocket, clientAddress);
 		client->Run();
+		legion_off
 		{
 			cout_region_lock;
 			cout << "AsyncConnector Running >> " << clientSocket << ' ' << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;

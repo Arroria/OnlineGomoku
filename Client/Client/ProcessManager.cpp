@@ -137,7 +137,7 @@ HRESULT ProcessManager::CreateDevice(const bool & isWindow)
 }
 
 
-WPARAM ProcessManager::Loop()
+WPARAM ProcessManager::Loop(bool autoClear)
 {
 	//FPS Timer Manage variable
 	FrameTimer::time_point prevUpdateTime;
@@ -188,7 +188,7 @@ WPARAM ProcessManager::Loop()
 					prevRenderTime = currTime;
 					if (m_d3dxDevice)
 					{
-						if (SUCCEEDED( m_d3dxDevice->Clear(0, NULL, D3DCLEAR_STENCIL | D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DXCOLOR(0x2b / 256.f, 0x65 / 256.f, 0xec / 256.f, 1), 1, 0) ) &&
+						if ((autoClear ? SUCCEEDED(DefaultClear()) : true) &&
 							SUCCEEDED( m_d3dxDevice->BeginScene() ) )
 						{
 							bool ignoreDraw = !m_render();
@@ -211,4 +211,9 @@ WPARAM ProcessManager::Loop()
 	}
 
 	return msg.wParam;
+}
+
+HRESULT ProcessManager::DefaultClear()
+{
+	return m_d3dxDevice->Clear(0, NULL, D3DCLEAR_STENCIL | D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DXCOLOR(0x2b / 256.f, 0x65 / 256.f, 0xec / 256.f, 1), 1, 0);
 }

@@ -33,7 +33,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 
 
-			lastWParam = g_processManager->Loop();
+			lastWParam = g_processManager->Loop(false);
 			if (DEVICE)
 				DEVICE->Release();
 		}

@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 
-#include "Gomoku.h"
 
 class GomokuLobby;
 enum class GomokuRoomState : int
@@ -11,52 +10,83 @@ enum class GomokuRoomState : int
 	Playing = 2,
 };
 
+class Gomoku;
 class GomokuRoom
 {
+private:
+	//using State = GomokuRoomState;
+	enum class Message
+	{
+		ReadyToInit,
+
+		Ready,
+		LeaveRoom,
+
+		GomokuAttack,
+
+		Invalid = -1
+	};
+
 public:
 	GomokuRoom(GomokuLobby& lobby, AsyncConnector* host, int id, const std::string& name, const std::string& password);
 	~GomokuRoom();
-
-	bool EnterRoom(AsyncConnector* guest, const std::string& password);
 
 	inline int ID()					const { return m_id; }
 	inline std::string Name()		const { return m_name; }
 	inline bool IsLocked()			const { return m_password.size(); }
 	inline GomokuRoomState State()	const { return m_state; }
 
+	//Action
+	bool EnterRoom(AsyncConnector& guest, const std::string& password);
+
 private:
 	inline void AttachConnectorReturner(AsyncConnector& connector)
 	{
 		connector.Returner([this](AsyncConnector & user, int recvResult, SocketBuffer & recvData)->bool { return MessageProcessing(user, recvResult, recvData); });
 	}
-	inline void DetachConnectorReturner(AsyncConnector& connector) { connector.Returner(nullptr); }
+	inline static void DetachConnectorReturner(AsyncConnector& connector) { connector.Returner(nullptr); }
 	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
+	Message CheckMessage(const std::string& msg) const;
 
-	bool LeaveRoom(AsyncConnector& user);
+	//JSON analysis
 	bool Ready(AsyncConnector& user, const arJSON& iJSON);
-	bool Attack(AsyncConnector& user, const arJSON& iJSON);
+	bool LeaveRoom(AsyncConnector& user, const arJSON& iJSON);
+	bool GomokuAttack(AsyncConnector& user, const arJSON& iJSON);
 
+	//Action
+	bool Ready(AsyncConnector& user, bool isReady);
+	bool LeaveRoom(AsyncConnector& user);
 
-	void GomokuMessageProcessing(bool);
+	bool GomokuStart();
+	bool GomokuAttack(bool isBlack, int x, int y);
+	void CALLBACK GomokuEnd(bool blackWin);
+	
+	//Broadcast
+	void BCUserClientInit(AsyncConnector& user) const;
 
-	void GomokuDestroy();
+	void BCUserState(AsyncConnector& user, bool isHost) const;
+	void BCEnterRoom(bool isHost) const;
+	void BCReady(bool isHost, bool isReady) const;
+	void BCLeaveRoom(bool isHost) const;
+
+	void BCGomokuStart() const;
+	void BCGomokuAttack(bool isBlack, int x, int y) const;
+	void BCGomokuEnd(bool blackWin);
 
 private:
-	int m_id;
-	std::string m_name;
-	std::string m_password;
+	GomokuLobby& m_lobby;
+
+	const int m_id;
+	const std::string m_name;
+	const std::string m_password;
 	GomokuRoomState m_state;
 
-	GomokuLobby& m_lobby;
 	AsyncConnector* m_host;
 	AsyncConnector* m_guest;
-
-	std::mutex m_mtxEnterLeave;
-	std::mutex m_mtxHost;
-	std::mutex m_mtxGuest;
-
 	Gomoku* m_gomoku;
-	bool m_ready[2];
-	std::mutex m_mtxGomoku;
+	bool m_hostReady;
+	bool m_guestReady;
+
+	mutable std::mutex m_mtxProcessing;
 };
 

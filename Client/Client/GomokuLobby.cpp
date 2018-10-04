@@ -46,6 +46,10 @@ void GomokuLobby::Init()
 
 
 	AttachConnectorReturner();
+	arJSON readyToInit;
+	readyToInit["Message"] = "ReadyToInit";
+	__ar_send(*m_serverConnector, readyToInit);
+
 	locked_cout << "Lobby >> Enter" << endl;
 }
 
@@ -100,7 +104,7 @@ void GomokuLobby::Update()
 		//Enter room(room list)
 		else
 		{
-			mutex_lock_guard lockerR(m_mtxMsgProcessing);
+			mutex_lock_guard lockerR(m_mtxProcessing);
 			for (int index = 0; index < m_roomList.size(); index++)
 			{
 				if (IsMouseIn(c_listBarStartPos.x + 10, c_listBarStartPos.y + 10 + index * c_listBarInterval,
@@ -119,7 +123,14 @@ void GomokuLobby::Update()
 
 						locked_cout << "Lobby >> Room Enter..." << endl;
 					};
-					EnterRoomPlease(index);
+					auto GetIndex = [this](int i)->int
+					{
+						auto iter = m_roomList.begin();
+						while (i--)
+							iter++;
+						return iter->first;
+					};
+					EnterRoomPlease(GetIndex(index));
 					break;
 				}
 			}
@@ -162,7 +173,7 @@ void GomokuLobby::Render()
 	Draw(m_resource.create, c_createPos.x, c_createPos.y);
 	Draw(m_resource.exit, c_exitPos.x, c_exitPos.y);
 	{
-		std::lock_guard<std::mutex> locker(m_mtxMsgProcessing);
+		std::lock_guard<std::mutex> locker(m_mtxProcessing);
 		auto DrawRoomBar = [&, this](int x, int y, int id, const std::string& name, bool isWaiting)
 		{
 			Draw(m_resource.listBar, x, y);
@@ -177,7 +188,7 @@ void GomokuLobby::Render()
 			int id = iter.first;
 			std::string name = iter.second.name;
 
-			DrawRoomBar(c_listBarStartPos.x, c_listBarStartPos.y + c_listBarInterval * count, id, name, true);
+			DrawRoomBar(c_listBarStartPos.x, c_listBarStartPos.y + c_listBarInterval * count, id, name, iter.second.state == GomokuRoomData::State::Waiting);
 			count++;
 		}
 	}
@@ -214,7 +225,7 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & server, int recvResult, Soc
 				return false;
 			}
 		}
-		mutex_lock_guard actionLocker(m_mtxMsgProcessing);
+		mutex_lock_guard actionLocker(m_mtxProcessing);
 
 		switch (msg)
 		{
@@ -231,7 +242,7 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & server, int recvResult, Soc
 	}
 	else
 	{
-		mutex_lock_guard actionLocker(m_mtxMsgProcessing);
+		mutex_lock_guard actionLocker(m_mtxProcessing);
 
 		locked_cout << "The connection to the server has been lost." << endl;
 		DetachConnectorReturner();
@@ -277,7 +288,8 @@ bool GomokuLobby::RoomListRefresh(const arJSON & iJSON)
 		if (iter.IsIn("Locked"))
 			locked = iter["Locked"].Int();
 
-		return RoomCreated(id, name, locked, state);
+		if (RoomCreated(id, name, locked, state))
+			return true;
 	}
 	{ locked_cout << "The room list has been refreshed." << endl; }
 	return false;

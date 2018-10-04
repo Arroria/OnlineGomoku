@@ -52,6 +52,9 @@ void SceneManager::Render()
 		if (m_ignoreNextRender)
 			m_ignoreNextRender = false;
 		else
+		{
+			g_processManager->DefaultClear();
 			m_currScene->Render();
+		}
 	}
 }

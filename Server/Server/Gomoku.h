@@ -42,8 +42,8 @@ private:
 	Gomoku & m_game;
 };
 
-using GomokuWhite = GomokuPlayer<false>;
 using GomokuBlack = GomokuPlayer<true>;
+using GomokuWhite = GomokuPlayer<false>;
 
 
 class Gomoku

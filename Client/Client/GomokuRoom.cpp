@@ -28,7 +28,8 @@ GomokuRoom::GomokuRoom(AsyncConnector* serverConnector, int id, const std::strin
 	, m_id(id)
 	, m_name(name)
 
-	, m_playerReady{ false }
+	, m_hostReady(false)
+	, m_guestReady(false)
 {
 }
 
@@ -56,7 +57,12 @@ void GomokuRoom::Init()
 	CreateTex(L"./Resource/room/blackStone.png",	m_resource.stoneB);
 	CreateTex(L"./Resource/room/lastSign.png",		m_resource.stoneMarker);
 
+
 	AttachConnectorReturner();
+	arJSON readyToInit;
+	readyToInit["Message"] = "ReadyToInit";
+	__ar_send(*m_serverConnector, readyToInit);
+
 	locked_cout << "Room >> Enter" << endl;
 }
 
@@ -101,20 +107,10 @@ void GomokuRoom::Update()
 		else
 		if (IsMouseIn(c_readyRigidPos.x, c_readyRigidPos.y, c_readyRigidPos.x + c_buttonRigidSize.x, c_readyRigidPos.y + c_buttonRigidSize.y))
 		{
-			if (true)
-			{
-				arJSON oJSON;
-				oJSON["Message"] = "Ready";
-				oJSON["Ready"] = 1;
-				__ar_send(*m_serverConnector, oJSON);
-			}
-			else
-			{
-				arJSON oJSON;
-				oJSON["Message"] = "Ready";
-				oJSON["Ready"] = 1;
-				__ar_send(*m_serverConnector, oJSON);
-			}
+			arJSON oJSON;
+			oJSON["Message"] = "Ready";
+			oJSON["Ready"] = !(m_isHost ? m_hostReady : m_guestReady);
+			__ar_send(*m_serverConnector, oJSON);
 		}
 		//Quit
 		else
@@ -153,8 +149,8 @@ void GomokuRoom::Render()
 	{
 		Draw(m_resource.readyMark, playerX + c_playerSize.x - 75, playerY + 25);
 	};
-	if (m_playerReady[0])	DrawReadySign(c_hostPos.x, c_hostPos.y);
-	if (m_playerReady[1])	DrawReadySign(c_guestPos.x, c_guestPos.y);
+	if (m_hostReady)	DrawReadySign(c_hostPos.x, c_hostPos.y);
+	if (m_guestReady)	DrawReadySign(c_guestPos.x, c_guestPos.y);
 
 	Draw(m_resource.ready, c_readyPos.x, c_readyPos.y);
 	Draw(m_resource.quit, c_exitPos.x, c_exitPos.y);
@@ -173,32 +169,44 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 {
 	if (recvResult > 0)
 	{
-		recvData[recvResult] = NULL;
 		arJSON iJSON;
-		if (JSON_To_arJSON(recvData.Buffer(), iJSON))
+		Message msg = Message::Invalid;
 		{
-			locked_cout << "Server returned JSON errored" << endl;
-			return true;
+			recvData[recvResult] = NULL;
+			if (JSON_To_arJSON(recvData.Buffer(), iJSON))
+			{
+				locked_cout << "JSON Errored by received message." << endl;
+				return true;
+			}
+
+			if ((msg = CheckMessage(iJSON["Message"].Str())) == Message::Invalid)
+			{
+				locked_cout << "An invalid message(" << static_cast<int>(msg) << ") was received by Room" << endl;
+				return false;
+			}
 		}
+		mutex_lock_guard actionLocker(m_mtxProcessing);
 
-		const std::string& iMessage = iJSON["Message"].Str();
-		///	 if (iMessage == "CreateRoom")	{ if (CreateRoom(user, iJSON))	return true; }
-		///else if (iMessage == "JoinRoom")	{ if (EnterRoom(user, iJSON))	return true; }
-		///else 
+		switch (msg)
+		{
+		case GomokuRoom::Message::UserState:		UserState	(iJSON);	break;
+		case GomokuRoom::Message::RoomEntered:		RoomEntered	(iJSON);	break;
+		case GomokuRoom::Message::IsReady:			IsReady		(iJSON);	break;
+		case GomokuRoom::Message::RoomLeaved:		RoomLeaved	(iJSON);	break;
 
-			 if (iMessage == "RoomLeaved")			{ if (RoomLeaved(iJSON))	return true; }
-		else if (iMessage == "UserDisconnected")	{}
-
-		else if (iMessage == "Ready")				{ if (Ready(iJSON))			return true; }
-		else if (iMessage == "GomokuStart")			{ if (GomokuStart(iJSON))	return true; }
-		else if (iMessage == "Attacked")			{ if (Attacked(iJSON))		return true; }
-		else if (iMessage == "GomokuEnd")			{ if (GomokuEnd(iJSON))		return true; }
-		else
-		{ locked_cout << "Room >> Unknown message recived : " << iMessage << endl; }
+		case GomokuRoom::Message::GomokuStarted:	GomokuStarted	(iJSON);	break;
+		case GomokuRoom::Message::GomokuAttacked:	GomokuAttacked	(iJSON);	break;
+		case GomokuRoom::Message::GomokuEnd:		GomokuEnd		(iJSON);	break;
+		default:
+			locked_cout << "An invalid message(" << static_cast<int>(msg) << ") was received by Room" << endl;
+			break;
+		}
 	}
 	else
 	{
-		locked_cout << "Lobby >> Server Disconnected" << endl;
+		mutex_lock_guard actionLocker(m_mtxProcessing);
+
+		locked_cout << "The connection to the server has been lost." << endl;
 		DetachConnectorReturner();
 		SntInst(SceneManager).ChangeScene(new GomokuTitle());
 		return true;
@@ -206,69 +214,73 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 	return false;
 }
 
-bool GomokuRoom::RoomLeaved(const arJSON & iJSON)
+GomokuRoom::Message GomokuRoom::CheckMessage(const std::string & msg) const
 {
-	if (iJSON.IsIn("Result") && iJSON["Result"].Int())
-	{
-		locked_cout << "Room >> Reaved" << endl;
+	if (msg.empty())					return Message::Invalid;
+	else if (msg == "UserState")		return Message::UserState;
+	else if (msg == "RoomEntered")		return Message::RoomEntered;
+	else if (msg == "IsReady")			return Message::IsReady;
+	else if (msg == "RoomLeaved")		return Message::RoomLeaved;
+	else if (msg == "GomokuStarted")	return Message::GomokuStarted;
+	else if (msg == "GomokuAttacked")	return Message::GomokuAttacked;
+	else if (msg == "GomokuEnd")		return Message::GomokuEnd;
+	else								return Message::Invalid;
+}
 
-		DetachConnectorReturner();
-		SntInst(SceneManager).ChangeScene(new GomokuLobby(m_serverConnector));
-	}
+
+
+
+bool GomokuRoom::UserState(const arJSON & iJSON)
+{
+	if (iJSON.IsIn("UserState"))
+		return UserState(iJSON["UserState"].Str() == "Host");
+	else false;
+}
+
+bool GomokuRoom::RoomEntered(const arJSON & iJSON)
+{
+	if (iJSON.IsIn("Player"))
+		return RoomEntered(iJSON["Player"].Str() == "Host");
 	return false;
 }
 
-bool GomokuRoom::Ready(const arJSON & iJSON)
+bool GomokuRoom::IsReady(const arJSON & iJSON)
 {
-	if (!iJSON.IsIn("Ready") || !iJSON.IsIn("By"))
+	if (!iJSON.IsIn("IsReady") || !iJSON.IsIn("Player"))
 		return false;
 
-	bool ready = iJSON["Ready"].Int();
-	bool isBlack = iJSON["By"].Str() == "Black";
+	bool isReady = iJSON["IsReady"].Int();
+	bool isHost = iJSON["Player"].Str() == "Host";
 
-	m_playerReady[isBlack ? 0 : 1] = ready;
-	locked_cout << "Room >> Player(" << (isBlack ? "Black" : "White") << ") ready " << (ready ? "On" : "Off") << endl;
-	return false;
+	return IsReady(isHost, isReady);
 }
 
-bool GomokuRoom::GomokuStart(const arJSON & iJSON)
+bool GomokuRoom::RoomLeaved(const arJSON & iJSON)
 {
-	locked_cout << "Room >> Game started" << endl;
-	m_gomokuBoard.Clear();
-	m_playerReady[0] = m_playerReady[1] = false;
+	if (iJSON.IsIn("Player"))
+		return RoomLeaved(iJSON["Player"].Str() == "Host");
 	return false;
 }
 
+bool GomokuRoom::GomokuStarted(const arJSON & iJSON)
+{
+	return GomokuStarted();
+}
 
-bool GomokuRoom::Attacked(const arJSON & iJSON)
+bool GomokuRoom::GomokuAttacked(const arJSON & iJSON)
 {
 	if (!iJSON.IsIn("Attack"))
 		return false;
+
 	const arJSON& attackJSON = iJSON["Attack"].Sub();
-	if (!attackJSON.IsIn("Attacker") ||
-		!attackJSON.IsIn("x") ||
-		!attackJSON.IsIn("y"))
+	if (!attackJSON.IsIn("Attacker") || !attackJSON.IsIn("x") || !attackJSON.IsIn("y"))
 		return false;
 
-	bool isBlack = attackJSON["Attacker"].Str() == "Black";
+	bool isBlackAttack = attackJSON["Attacker"].Str() == "Black";
 	int x = attackJSON["x"].Int();
 	int y = attackJSON["y"].Int();
 
-	m_gomokuBoard.At(x, y) = isBlack ? GomokuBoard::blackValue : GomokuBoard::whiteValue;
-	{
-		locked_cout << "Room >> Gomoku Board State" << endl;
-		for (int y = 0; y < GomokuBoard::boardSizeY; y++)
-		{
-			for (int x = 0; x < GomokuBoard::boardSizeX; x++)
-			{
-				if		(m_gomokuBoard.IsBlack(x, y))	cout << "¡Ü";
-				else if (m_gomokuBoard.IsWhite(x, y))	cout << "¡Û";
-				else									cout << "£«";
-			}
-			cout << endl;
-		}
-	}
-	return false;
+	return GomokuAttacked(isBlackAttack, x, y);
 }
 
 bool GomokuRoom::GomokuEnd(const arJSON & iJSON)
@@ -276,10 +288,66 @@ bool GomokuRoom::GomokuEnd(const arJSON & iJSON)
 	if (!iJSON.IsIn("Winner"))
 		return false;
 
-	const std::string& winner = iJSON["Winner"].Str();
-	locked_cout << "Room >> Gomoku winner is " << winner << endl
-				<< "Room >> Gomoku winner is " << winner << endl
-				<< "Room >> Gomoku winner is " << winner << endl;
+	bool isBlackWin = iJSON["Winner"].Str() == "Black";
+	return GomokuEnd(isBlackWin);
+}
+
+
+
+
+bool GomokuRoom::UserState(bool isHost)
+{
+	m_isHost = isHost;
+	return false;
+}
+
+bool GomokuRoom::RoomEntered(bool isHost)
+{
+	if (isHost == m_isHost)
+	{
+		//nothing
+	}
+	else
+		m_playerJoined = true;
+	return false;
+}
+
+bool GomokuRoom::IsReady(bool isHost, bool isReady)
+{
+	(isHost ? m_hostReady : m_guestReady) = isReady;
+	return false;
+}
+
+bool GomokuRoom::RoomLeaved(bool isHost)
+{
+	if (isHost == m_isHost)
+	{
+		DetachConnectorReturner();
+		SntInst(SceneManager).ChangeScene(new GomokuLobby(m_serverConnector));
+	}
+	else
+		m_playerJoined = false;
+	return false;
+}
+
+bool GomokuRoom::GomokuStarted()
+{
+	m_hostReady = m_guestReady = false;
+	m_gomokuBoard.Clear();
+	return false;
+}
+
+bool GomokuRoom::GomokuAttacked(bool isBlack, int x, int y)
+{
+	m_gomokuBoard.At(x, y) = isBlack ? GomokuBoard::blackValue : GomokuBoard::whiteValue;
+	return false;
+}
+
+bool GomokuRoom::GomokuEnd(bool isBlackWin)
+{
+	locked_cout << "Room >> Gomoku winner is " << (isBlackWin ? "Black" : "White") << endl
+				<< "Room >> Gomoku winner is " << (isBlackWin ? "Black" : "White") << endl
+				<< "Room >> Gomoku winner is " << (isBlackWin ? "Black" : "White") << endl;
 	return false;
 }
 

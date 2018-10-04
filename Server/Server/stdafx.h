@@ -27,3 +27,5 @@ extern std::mutex g_coutMutex;
 
 class GomokuLobby;
 extern GomokuLobby* g_server;
+
+#define legion_off if(false)

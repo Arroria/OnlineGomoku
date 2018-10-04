@@ -69,12 +69,13 @@ private:
 	FrameTimer::duration m_updateDeltaTime;
 	
 public:
-	WPARAM Loop();
+	WPARAM Loop(bool autoClear = true);
 
 	void SetFunction(bool(*initialize)(), void(*update)(), bool(*render)(), bool(*release)()) { m_initialize = initialize; m_update = update; m_render = render; m_release = release; }
 	void SetFPSLimite(size_t updateFPS, size_t renderFPS) { m_updateFPSLimite = updateFPS; m_renderFPSLimite = renderFPS; }
 	FrameTimer::duration GetDeltaTime() { return m_updateDeltaTime; }
 
+	HRESULT DefaultClear();
 
 public:
 	ProcessManager(const HINSTANCE& hInstance);
