@@ -186,13 +186,13 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 		///else if (iMessage == "JoinRoom")	{ if (EnterRoom(user, iJSON))	return true; }
 		///else 
 
-			 if (iMessage == "RoomLeaved")	{ if (RoomLeaved(iJSON))	return true; }
-		else if (iMessage == "UserDisconnected")
+			 if (iMessage == "RoomLeaved")			{ if (RoomLeaved(iJSON))	return true; }
+		else if (iMessage == "UserDisconnected")	{}
 
-		else if (iMessage == "Ready")		{ if (Ready(iJSON))			return true; }
-		else if (iMessage == "GomokuStart")	{ if (GomokuStart(iJSON))	return true; }
-		else if (iMessage == "Attacked")	{ if (Attacked(iJSON))		return true; }
-		else if (iMessage == "GomokuEnd")	{ if (GomokuEnd(iJSON))		return true; }
+		else if (iMessage == "Ready")				{ if (Ready(iJSON))			return true; }
+		else if (iMessage == "GomokuStart")			{ if (GomokuStart(iJSON))	return true; }
+		else if (iMessage == "Attacked")			{ if (Attacked(iJSON))		return true; }
+		else if (iMessage == "GomokuEnd")			{ if (GomokuEnd(iJSON))		return true; }
 		else
 		{ locked_cout << "Room >> Unknown message recived : " << iMessage << endl; }
 	}

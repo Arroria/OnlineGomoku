@@ -13,7 +13,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	g_processManager = new ProcessManager(hInstance);
 	int lastWParam = -1;
 
-	if (SUCCEEDED(g_processManager->CreateWnd(L"Gomoku", WS_POPUP, MainLoop::MsgProc)))
+	if (SUCCEEDED(g_processManager->CreateWnd(L"Gomoku", NULL, MainLoop::MsgProc)))
+	//if (SUCCEEDED(g_processManager->CreateWnd(L"Gomoku", WS_POPUP, MainLoop::MsgProc)))
 	{
 		g_processManager->WndResize(1200, 800);
 		g_processManager->WndMove((1920 - 1200) / 2, (1080 - 800) / 2);

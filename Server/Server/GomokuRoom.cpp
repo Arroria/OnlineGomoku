@@ -7,6 +7,7 @@ GomokuRoom::GomokuRoom(GomokuLobby& lobby, AsyncConnector * host, int id, const 
 	: m_id(id)
 	, m_name(name)
 	, m_password(password)
+	, m_state(GomokuRoomState::Waiting)
 
 	, m_lobby(lobby)
 	, m_host(host)
@@ -126,7 +127,7 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 			m_ready[1] = false;
 			SendReady(false, false);
 			
-			m_lobby.EnterLobby(&user);
+			m_lobby.EnterLobby(user);
 			server_log_note("Room >> Guest leaved the room" << endl);
 		}
 		else if (&user == m_host)
@@ -145,12 +146,12 @@ bool GomokuRoom::LeaveRoom(AsyncConnector & user)
 				SendReady(false, false);
 				SendReady(true, m_ready[0]);
 
-				m_lobby.EnterLobby(&user);
+				m_lobby.EnterLobby(user);
 				server_log_note("Room >> Host leaved the room, Guest get host" << endl);
 			}
 			else
 			{
-				m_lobby.EnterLobby(&user);
+				m_lobby.EnterLobby(user);
 				destroyRoom = true;
 			}
 		}

@@ -4,6 +4,13 @@
 #include "Gomoku.h"
 
 class GomokuLobby;
+enum class GomokuRoomState : int
+{
+	Waiting = 0,
+	Ready = 1,
+	Playing = 2,
+};
+
 class GomokuRoom
 {
 public:
@@ -12,9 +19,10 @@ public:
 
 	bool EnterRoom(AsyncConnector* guest, const std::string& password);
 
-	inline int ID()				const { return m_id; }
-	inline std::string Name()	const { return m_name; }
-	inline bool IsLocked()		const { return m_password.size(); }
+	inline int ID()					const { return m_id; }
+	inline std::string Name()		const { return m_name; }
+	inline bool IsLocked()			const { return m_password.size(); }
+	inline GomokuRoomState State()	const { return m_state; }
 
 private:
 	inline void AttachConnectorReturner(AsyncConnector& connector)
@@ -37,6 +45,7 @@ private:
 	int m_id;
 	std::string m_name;
 	std::string m_password;
+	GomokuRoomState m_state;
 
 	GomokuLobby& m_lobby;
 	AsyncConnector* m_host;

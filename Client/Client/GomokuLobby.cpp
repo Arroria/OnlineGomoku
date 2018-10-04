@@ -100,7 +100,7 @@ void GomokuLobby::Update()
 		//Enter room(room list)
 		else
 		{
-			mutex_lock_guard lockerR(m_mtxRoomList);
+			mutex_lock_guard lockerR(m_mtxMsgProcessing);
 			for (int index = 0; index < m_roomList.size(); index++)
 			{
 				if (IsMouseIn(c_listBarStartPos.x + 10, c_listBarStartPos.y + 10 + index * c_listBarInterval,
@@ -162,7 +162,7 @@ void GomokuLobby::Render()
 	Draw(m_resource.create, c_createPos.x, c_createPos.y);
 	Draw(m_resource.exit, c_exitPos.x, c_exitPos.y);
 	{
-		std::lock_guard<std::mutex> locker(m_mtxRoomList);
+		std::lock_guard<std::mutex> locker(m_mtxMsgProcessing);
 		auto DrawRoomBar = [&, this](int x, int y, int id, const std::string& name, bool isWaiting)
 		{
 			Draw(m_resource.listBar, x, y);
@@ -192,33 +192,48 @@ void GomokuLobby::Release()
 
 
 
-bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, SocketBuffer & recvData)
+
+
+bool GomokuLobby::MessageProcessing(AsyncConnector & server, int recvResult, SocketBuffer & recvData)
 {
 	if (recvResult > 0)
 	{
-		recvData[recvResult] = NULL;
 		arJSON iJSON;
-		if (JSON_To_arJSON(recvData.Buffer(), iJSON))
+		Message msg = Message::Invalid;
 		{
-			locked_cout << "Lobby >> Server returned JSON errored" << endl;
-			return true;
+			recvData[recvResult] = NULL;
+			if (JSON_To_arJSON(recvData.Buffer(), iJSON))
+			{
+				locked_cout << "JSON Errored by received message." << endl;
+				return true;
+			}
+
+			if ((msg = CheckMessage(iJSON["Message"].Str())) == Message::Invalid)
+			{
+				locked_cout << "An invalid message(" << static_cast<int>(msg) << ") was received by Lobby" << endl;
+				return false;
+			}
 		}
+		mutex_lock_guard actionLocker(m_mtxMsgProcessing);
 
-		const std::string& iMessage = iJSON["Message"].Str();
-		///	 if (iMessage == "CreateRoom")	{ if (CreateRoom(user, iJSON))	return true; }
-		///else if (iMessage == "JoinRoom")	{ if (EnterRoom(user, iJSON))	return true; }
-		///else 
-
-			 if (iMessage == "Room")			{ if (RoomUpdate(iJSON))	return true; }
-		else if (iMessage == "RoomEntered")		{ if (RoomEntered(iJSON))	return true; }
-		else if (iMessage == "LobbyLeaved")		{ if (LobbyLeaved(iJSON))	return true; }
-		else if (iMessage == "RoomList")		{ if (RoomList(iJSON))		return true; }
-		else
-		{ locked_cout << "Lobby >> UnknownMessage recived : " << iMessage << endl; }
+		switch (msg)
+		{
+		case GomokuLobby::Message::RoomListRefresh:		RoomListRefresh	(iJSON);	break;
+		case GomokuLobby::Message::RoomCreated:			RoomCreated		(iJSON);	break;
+		case GomokuLobby::Message::RoomDestroyed:		RoomDestroyed	(iJSON);	break;
+		case GomokuLobby::Message::RoomEntered:			RoomEntered		(iJSON);	break;
+		case GomokuLobby::Message::RoomUpdate:			RoomUpdate		(iJSON);	break;
+		case GomokuLobby::Message::LobbyLeaved:			LobbyLeaved		(iJSON);	break;
+		default:
+			locked_cout << "An invalid message(" << static_cast<int>(msg) << ") was received by Lobby" << endl;
+			break;
+		}
 	}
 	else
 	{
-		locked_cout << "Lobby >> Server Disconnected" << endl;
+		mutex_lock_guard actionLocker(m_mtxMsgProcessing);
+
+		locked_cout << "The connection to the server has been lost." << endl;
 		DetachConnectorReturner();
 		SntInst(SceneManager).ChangeScene(new GomokuTitle());
 		return true;
@@ -226,46 +241,83 @@ bool GomokuLobby::MessageProcessing(AsyncConnector & user, int recvResult, Socke
 	return false;
 }
 
+GomokuLobby::Message GomokuLobby::CheckMessage(const std::string & msg) const
+{
+	if (msg.empty())					return Message::Invalid;
+	else if (msg == "RoomListRefresh")	return Message::RoomListRefresh;
+	else if (msg == "RoomCreated")		return Message::RoomCreated;
+	else if (msg == "RoomDestroyed")	return Message::RoomDestroyed;
+	else if (msg == "RoomEntered")		return Message::RoomEntered;
+	else if (msg == "RoomUpdate")		return Message::RoomUpdate;
+	else if (msg == "LobbyLeaved")		return Message::LobbyLeaved;
+	else								return Message::Invalid;
+}
 
+
+
+bool GomokuLobby::RoomListRefresh(const arJSON & iJSON)
+{
+	if (!iJSON.IsIn("RoomList"))
+		return false;
+
+	{ locked_cout << "Room list refreshing..." << endl; }
+	m_roomList.clear();
+	for (auto& iter : iJSON["RoomList"])
+	{
+		if (!iter.IsIn("ID") || !iter.IsIn("State"))
+			continue;
+
+		int id						= iter["ID"].Int();
+		std::string name;
+		bool locked;
+		GomokuRoomData::State state	= static_cast<GomokuRoomData::State>(iter["State"].Int());
+
+		if (iter.IsIn("Name"))
+			name = iter["Name"].Str();
+		if (iter.IsIn("Locked"))
+			locked = iter["Locked"].Int();
+
+		return RoomCreated(id, name, locked, state);
+	}
+	{ locked_cout << "The room list has been refreshed." << endl; }
+	return false;
+}
+
+bool GomokuLobby::RoomCreated(const arJSON & iJSON)
+{
+	if (!iJSON.IsIn("Room"))
+		return false;
+
+	const arJSON& roomJSON = iJSON["Room"].Sub();
+	if (!roomJSON.IsIn("ID"))
+		return false;
+
+	int id						= roomJSON["ID"].Int();
+	std::string name;
+	bool locked;
+	GomokuRoomData::State state	= GomokuRoomData::State::Waiting;
+	///GomokuRoomData::State state	= static_cast<GomokuRoomData::State>(roomJSON["State"].Int());
+
+	if (roomJSON.IsIn("Name"))
+		name = roomJSON["Name"].Str();
+	if (roomJSON.IsIn("Locked"))
+		locked = roomJSON["Locked"].Int();
+
+	return RoomCreated(id, name, locked, state);
+}
 
 bool GomokuLobby::RoomUpdate(const arJSON & iJSON)
 {
 	if (!iJSON.IsIn("Room"))
 		return false;
 	const arJSON& roomJSON = iJSON["Room"].Sub();
-	if (!roomJSON.IsIn("ID") || !roomJSON.IsIn("IsDestroyed"))
+	if (!roomJSON.IsIn("ID") || !roomJSON.IsIn("State"))
 		return false;
 
-
-	mutex_lock_guard lockerR(m_mtxRoomList);
 	int id = roomJSON["ID"].Int();
-	auto iter = m_roomList.find(id);
-	bool iterIsIn = iter != m_roomList.end();
-	if (roomJSON["IsDestroyed"].Int())
-	{
-		if (iterIsIn)
-			m_roomList.erase(iter);
-		return false;
-	}
-	else
-	{
-		GomokuRoomData* room;
-		if (!iterIsIn)
-		{
-			GomokuRoomData _room;
-			m_roomList.insert(std::make_pair(id, _room));
-			auto iters = m_roomList.find(id);
-			if (iters == m_roomList.end())
-				return false;
-			room = &iters->second;
-		}
-		else
-			room = &iter->second;
+	GomokuRoomData::State state = static_cast<GomokuRoomData::State>(roomJSON["State"].Int());
 
-		if (roomJSON.IsIn("Name"))	room->name = roomJSON["Name"].Str();
-	}
-	locked_cout << "Lobby >> Room list updated" << endl;
-	return false;
+	return RoomUpdate(id, state);
 }
 
 bool GomokuLobby::RoomEntered(const arJSON & iJSON)
@@ -274,73 +326,79 @@ bool GomokuLobby::RoomEntered(const arJSON & iJSON)
 		return false;
 
 	const arJSON& roomJSON = iJSON["Room"].Sub();
-	if (!roomJSON.IsIn("ID") || !roomJSON.IsIn("Name"))
+	if (!roomJSON.IsIn("ID") || !roomJSON.IsIn("Name") || !roomJSON.IsIn("Locked"))
 		return false;
 
 	int id = roomJSON["ID"].Int();
 	std::string name = roomJSON["Name"].Str();
+	bool isLocked = roomJSON["Locked"].Int();
+	return RoomEntered(id, name, isLocked);
+}
 
-	DetachConnectorReturner();
-	SntInst(SceneManager).ChangeScene(new GomokuRoom(m_serverConnector, id, name));
-
-	cout_region_lock;
-	cout << "Lobby >> RoomEntered : " << id << ":" << name << endl;
+bool GomokuLobby::RoomDestroyed(const arJSON & iJSON)
+{
+	if (iJSON.IsIn("RoomDestroyed"))
+		return RoomDestroyed(iJSON["RoomDestroyed"].Int());
 	return false;
 }
 
 bool GomokuLobby::LobbyLeaved(const arJSON & iJSON)
 {
 	if (iJSON.IsIn("Result") && iJSON["Result"].Int())
-	{
-		DetachConnectorReturner();
-		SntInst(SceneManager).ChangeScene(new GomokuTitle());
-		locked_cout << "Lobby >> Leaved lobby" << endl;
-		return true;
-	}
+		return LobbyLeaved();
 	return false;
 }
 
-bool GomokuLobby::RoomList(const arJSON & iJSON)
+
+
+bool GomokuLobby::RoomCreated(int id, const std::string& name, bool isLocked, GomokuRoomData::State state)
 {
-	if (iJSON.IsIn("RoomList"))
-	{
-		mutex_lock_guard locker2(m_mtxRoomList);
-		for (auto& iter : iJSON["RoomList"])
-		{
-			if (!iter.IsIn("ID"))
-				continue;
+	if (m_roomList.find(id) != m_roomList.end())
+		return false;
 
-			int id = iter["ID"].Int();
-			std::string name;
+	GomokuRoomData room;
+	room.id = id;
+	room.name = name;
+	room.isLocked = isLocked;
+	room.state = state;
 
-			if (iter.IsIn("Name"))
-				name = iter["Name"].Str();
-
-			{
-				GomokuRoomData room;
-				room.id = id;
-				room.name = name;
-
-				m_roomList.insert(std::make_pair(id, room));
-			}
-		}
-		locked_cout << "Lobby >> Room list updated : resetted" << endl;
-	}
+	m_roomList.insert(std::make_pair(id, room));
 	return false;
 }
 
-bool GomokuLobby::RoomDestroyed(const arJSON & iJSON)
+bool GomokuLobby::RoomUpdate(int id, GomokuRoomData::State state)
 {
-	if (iJSON.IsIn("RoomDestroyed"))
-	{
-		mutex_lock_guard locker2(m_mtxRoomList);
-		auto iter = m_roomList.find(iJSON["RoomDestroyed"].Int());
-		if (iter != m_roomList.end())
-			m_roomList.erase(iter);
+	auto iter = m_roomList.find(id);
+	if (iter == m_roomList.end())
+		return false;
 
-		locked_cout << "Lobby >> Room list updated : destroyed" << endl;
-	}
+	GomokuRoomData& room = iter->second;
+	room.state = state;
 	return false;
+}
+
+bool GomokuLobby::RoomEntered(int id, const std::string& name, bool isLocked)
+{
+	DetachConnectorReturner();
+	SntInst(SceneManager).ChangeScene(new GomokuRoom(m_serverConnector, id, name));
+	///SntInst(SceneManager).ChangeScene(new GomokuRoom(m_serverConnector, id, name, isLocked));
+	return false;
+}
+
+bool GomokuLobby::RoomDestroyed(int id)
+{
+	auto iter = m_roomList.find(id);
+	if (iter != m_roomList.end())
+		m_roomList.erase(iter);
+	return false;
+}
+
+bool GomokuLobby::LobbyLeaved()
+{
+	DetachConnectorReturner();
+	SntInst(SceneManager).ChangeScene(new GomokuTitle());
+	locked_cout << "Lobby >> Leaved lobby" << endl;
+	return true;
 }
 
 

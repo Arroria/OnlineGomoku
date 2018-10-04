@@ -36,7 +36,7 @@ int main()
 			cout << "AsyncConnector Running >> " << clientSocket << ' ' << inet_ntoa(clientAddress.sin_addr) << ':' << ntohs(clientAddress.sin_port) << endl;
 		}
 
-		g_server->EnterLobby(client);
+		g_server->EnterLobby(*client);
 	}
 
 

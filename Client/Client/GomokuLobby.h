@@ -5,11 +5,11 @@
 class GomokuRoomData
 {
 public:
-	enum class State
+	enum class State : int
 	{
-		Waiting,
-		Ready,
-		Playing,
+		Waiting = 0,
+		Ready = 1,
+		Playing = 2,
 	};
 
 public:
@@ -25,6 +25,19 @@ public:
 class GomokuLobby final :
 	public Scene
 {
+private:
+	enum class Message
+	{
+		RoomListRefresh,
+		RoomCreated,
+		RoomDestroyed,
+		RoomEntered,
+		RoomUpdate,
+		LobbyLeaved,
+
+		Invalid = -1
+	};
+
 public:
 	GomokuLobby(AsyncConnector* serverConnector);
 	~GomokuLobby();
@@ -42,18 +55,28 @@ private:
 	}
 	inline void DetachConnectorReturner() { m_serverConnector->Returner(nullptr); }
 	bool MessageProcessing(AsyncConnector&, int, SocketBuffer&);
+	Message CheckMessage(const std::string& msg) const;
 
-	bool RoomUpdate(const arJSON& iJSON);
-	bool RoomEntered(const arJSON& iJSON);
-	bool LobbyLeaved(const arJSON& iJSON);
-	bool RoomList(const arJSON& iJSON);
-	bool RoomDestroyed(const arJSON& iJSON);
+	//JSON analysis
+	bool RoomListRefresh	(const arJSON& iJSON);
+	bool RoomCreated		(const arJSON& iJSON);
+	bool RoomUpdate			(const arJSON& iJSON);
+	bool RoomEntered		(const arJSON& iJSON);
+	bool RoomDestroyed		(const arJSON& iJSON);
+	bool LobbyLeaved		(const arJSON& iJSON);
+
+	//Action
+	bool RoomCreated		(int id, const std::string& name, bool isLocked, GomokuRoomData::State state);
+	bool RoomUpdate			(int id, GomokuRoomData::State state);
+	bool RoomEntered		(int id, const std::string& name, bool isLocked);
+	bool RoomDestroyed		(int id);
+	bool LobbyLeaved		();
 
 private:
 	AsyncConnector * m_serverConnector;
 
-	std::mutex m_mtxRoomList;
 	std::map<int, GomokuRoomData> m_roomList;
+	mutable std::mutex m_mtxMsgProcessing;
 
 
 	struct Resource
