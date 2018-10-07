@@ -4,6 +4,8 @@
 #include "SceneManager.h"
 #include "GomokuLobby.h"
 
+#include "Button.h"
+
 
 constexpr POINT c_backgroundPos = { 0, 0 };
 constexpr POINT c_buttonPos = { 350, 350 };
@@ -37,55 +39,17 @@ void GomokuTitle::Init()
 	CreateTex(L"./Resource/title/online.png", m_resource.onlinePlay);
 	CreateTex(L"./Resource/title/offline.png", m_resource.offlinePlay);
 	CreateTex(L"./Resource/title/quit.png", m_resource.quit);
+
+	m_online	= std::make_unique<StaticButton>(m_resource.onlinePlay,		c_onlinePlayPos.x, c_onlinePlayPos.y,	0, 0, c_buttonSize.x, c_buttonSize.y,	[this]() { this->AccessOnline(); });
+	m_offline	= std::make_unique<StaticButton>(m_resource.offlinePlay,	c_offlinePlayPos.x, c_offlinePlayPos.y,	0, 0, c_buttonSize.x, c_buttonSize.y,	[this]() { this->AccessOffline(); });
+	m_quit		= std::make_unique<StaticButton>(m_resource.quit,			c_exitPos.x, c_exitPos.y,				0, 0, c_buttonSize.x, c_buttonSize.y,	[this]() { this->QuitProgram(); });
 }
 
 void GomokuTitle::Update()
 {
-	if (g_inputDevice.IsKeyDown(VK_LBUTTON))
-	{
-		const POINT mousePos = g_inputDevice.MousePos();
-		auto IsMouseIn = [&mousePos](int left, int top, int right, int bottom)->bool
-		{
-			return
-				left <= mousePos.x &&
-				top <= mousePos.y &&
-				mousePos.x < right &&
-				mousePos.y < bottom;
-		};
-
-		//Online Play
-		if (IsMouseIn(c_onlinePlayPos.x, c_onlinePlayPos.y, c_onlinePlayPos.x + c_onlinePlaySize.x, c_onlinePlayPos.y + c_onlinePlaySize.y))
-		{
-			sockaddr_in serverAddress;
-			__ar_make_sockaddrin(AF_INET, htonl(INADDR_LOOPBACK), htons(5656), &serverAddress);
-			///__ar_make_sockaddrin(AF_INET, inet_addr("222.110.147.5"), htons(5656), &serverAddress);
-			{ locked_cout << "Server connecting..." << endl; }
-
-			SOCKET mySocket;
-			if (mySocket = ServerConnect(serverAddress))
-			{
-				locked_cout << "Server connect success" << endl;
-
-				AsyncConnector* serverConnector = new AsyncConnector(mySocket, serverAddress);
-				serverConnector->Run();
-				SntInst(SceneManager).ChangeScene(new GomokuLobby(serverConnector));
-				return;
-			}
-			else
-				locked_cout << "Server connect failed" << endl;
-		}
-		//Offline Play
-		else if (IsMouseIn(c_offlinePlayPos.x, c_offlinePlayPos.y, c_offlinePlayPos.x + c_offlinePlaySize.x, c_offlinePlayPos.y + c_offlinePlaySize.y))
-		{
-			locked_cout << "안만들었어!" << endl;
-		}
-		//Quit
-		else if (IsMouseIn(c_exitPos.x, c_exitPos.y, c_exitPos.x + c_exitSize.x, c_exitPos.y + c_exitSize.y))
-		{
-			locked_cout << "종료할께!" << endl;
-			PostQuitMessage(0);
-		}
-	}
+	(*m_online	).Update();
+	(*m_offline	).Update();
+	(*m_quit	).Update();
 }
 
 void GomokuTitle::Render()
@@ -94,9 +58,9 @@ void GomokuTitle::Render()
 	g_sprite->Begin(D3DXSPRITE_ALPHABLEND);
 	
 	Draw(m_resource.background, c_backgroundPos.x, c_backgroundPos.y);
-	Draw(m_resource.onlinePlay, c_onlinePlayPos.x, c_onlinePlayPos.y);
-	Draw(m_resource.offlinePlay, c_offlinePlayPos.x, c_offlinePlayPos.y);
-	Draw(m_resource.quit, c_exitPos.x, c_exitPos.y);
+	(*m_online	).Render();
+	(*m_offline	).Render();
+	(*m_quit	).Render();
 
 	g_sprite->End();
 }
@@ -128,6 +92,40 @@ SOCKET GomokuTitle::ServerConnect(const sockaddr_in& address)
 	}
 
 	return mySocket;
+}
+
+
+
+void GomokuTitle::AccessOnline()
+{
+	sockaddr_in serverAddress;
+	__ar_make_sockaddrin(AF_INET, htonl(INADDR_LOOPBACK), htons(5656), &serverAddress);
+	///__ar_make_sockaddrin(AF_INET, inet_addr("222.110.147.5"), htons(5656), &serverAddress);
+	{ locked_cout << "Server connecting..." << endl; }
+
+	SOCKET mySocket;
+	if (mySocket = ServerConnect(serverAddress))
+	{
+		locked_cout << "Server connect success" << endl;
+
+		AsyncConnector* serverConnector = new AsyncConnector(mySocket, serverAddress);
+		serverConnector->Run();
+		SntInst(SceneManager).ChangeScene(new GomokuLobby(serverConnector));
+		return;
+	}
+	else
+		locked_cout << "Server connect failed" << endl;
+}
+
+void GomokuTitle::AccessOffline()
+{
+	locked_cout << "안만들었어!" << endl;
+}
+
+void GomokuTitle::QuitProgram()
+{
+	locked_cout << "종료할께!" << endl;
+	PostQuitMessage(0);
 }
 
 

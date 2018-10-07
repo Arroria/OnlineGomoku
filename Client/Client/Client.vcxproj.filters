@@ -10,6 +10,9 @@
     <Filter Include="temp">
       <UniqueIdentifier>{54a8e6a7-d201-4886-b13c-161c64954408}</UniqueIdentifier>
     </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{4cf5202e-ebfb-4bbc-a3ef-b15ba49a6b6e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\arSocket\arJSON.cpp">
@@ -54,6 +57,15 @@
       <Filter>temp</Filter>
     </ClCompile>
     <ClCompile Include="GomokuBoard.cpp" />
+    <ClCompile Include="UIObj.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Button.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UIEmpty.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\arSocket\arJSON.h">
@@ -98,6 +110,15 @@
       <Filter>temp</Filter>
     </ClInclude>
     <ClInclude Include="GomokuBoard.h" />
+    <ClInclude Include="UIObj.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Button.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UIEmpty.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\arSocket\arJSON.inl">

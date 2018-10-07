@@ -1,6 +1,11 @@
 #pragma once
 #include "Scene.h"
 
+#include "Button.h"
+
+
+class StaticButton;
+class Button;
 
 class GomokuRoomData
 {
@@ -47,6 +52,7 @@ public:
 	void Update() override;
 	void Render() override;
 	void Release() override;
+	
 
 private:
 	inline void AttachConnectorReturner()
@@ -66,25 +72,50 @@ private:
 	bool LobbyLeaved		(const arJSON& iJSON);
 
 	//Action
-	bool RoomCreated		(int id, const std::string& name, bool isLocked, GomokuRoomData::State state);
-	bool RoomUpdate			(int id, GomokuRoomData::State state);
-	bool RoomEntered		(int id, const std::string& name, bool isLocked);
-	bool RoomDestroyed		(int id);
-	bool LobbyLeaved		();
+	bool RoomCreated(int id, const std::string& name, bool isLocked, GomokuRoomData::State state);
+	bool RoomUpdate(int id, GomokuRoomData::State state);
+	bool RoomEntered(int id, const std::string& name, bool isLocked);
+	bool RoomDestroyed(int id);
+	bool LobbyLeaved();
 
 private:
 	AsyncConnector * m_serverConnector;
-
-	std::map<int, GomokuRoomData> m_roomList;
 	mutable std::mutex m_mtxProcessing;
+	
+	class UIRoomList
+	{
+	public:
+		UIRoomList(AsyncConnector* serverConnector);
 
+		void Init();
+		void Update();
+		void Render();
+		void Release();
+
+		inline void ListClear() { m_roomList.clear(); }
+		void RegistRoom(const GomokuRoomData& data);
+		void UpdateRoom(int roomID, GomokuRoomData::State state);
+		void UnregistRoom(int roomID);
+
+	private:
+		AsyncConnector * m_serverConnector;
+
+		using UIRoom = std::pair<GomokuRoomData, std::shared_ptr<Button>>;
+		std::map<int, UIRoom> m_roomList;
+		int m_scroll;
+
+		LPD3DXFONT r_font;
+		LPDIRECT3DTEXTURE9 r_listBar;
+		LPDIRECT3DTEXTURE9 r_isLocked;
+		LPDIRECT3DTEXTURE9 r_isPlaying;
+	} m_uiRoomList;
+	Button m_btnCreate;
+	Button m_btnExit;
 
 	struct Resource
 	{
 		LPDIRECT3DTEXTURE9 background;
 		
-		LPD3DXFONT font;
-		LPDIRECT3DTEXTURE9 listBar;
 		LPDIRECT3DTEXTURE9 create;
 		LPDIRECT3DTEXTURE9 exit;
 

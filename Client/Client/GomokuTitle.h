@@ -1,5 +1,7 @@
 #pragma once
 #include "Scene.h"
+class StaticButton;
+
 class GomokuTitle final :
 	public Scene
 {
@@ -16,6 +18,14 @@ public:
 private:
 	SOCKET ServerConnect(const sockaddr_in& address);
 
+	void AccessOnline();
+	void AccessOffline();
+	void QuitProgram();
+
+private:
+	std::unique_ptr<StaticButton> m_online;
+	std::unique_ptr<StaticButton> m_offline;
+	std::unique_ptr<StaticButton> m_quit;
 
 private:
 	struct Resource

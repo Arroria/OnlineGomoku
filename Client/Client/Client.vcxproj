@@ -174,12 +174,15 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="Singleton.cpp" />
+    <ClCompile Include="Button.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="UIEmpty.cpp" />
+    <ClCompile Include="UIObj.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\arSocket\arJSON.h" />
@@ -197,7 +200,10 @@
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="Singleton.h" />
+    <ClInclude Include="Button.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="UIEmpty.h" />
+    <ClInclude Include="UIObj.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\arSocket\arJSON.inl" />

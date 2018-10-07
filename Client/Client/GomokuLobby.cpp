@@ -5,22 +5,21 @@
 #include "GomokuTitle.h"
 #include "GomokuRoom.h"
 
+#include "Button.h"
 
-constexpr POINT c_listBarStartPos = { 0, 0 };
-constexpr POINT c_listBarSize = { 780, 80 };
-constexpr size_t c_listBarInterval = 120;
 
-constexpr POINT c_createPos = { 800, 400 };
-constexpr POINT c_createRealPos = { 820, 420 };
-constexpr POINT c_createSize = { 360, 160 };
+constexpr size_t c_listBarInterval = 100;
+constexpr POINT c_createPos = { 400, 600 };
 constexpr POINT c_exitPos = { 800, 600 };
-constexpr POINT c_exitRealPos = { 820, 620 };
-constexpr POINT c_exitSize = { 360, 160 };
 
 
 
 GomokuLobby::GomokuLobby(AsyncConnector* serverConnector)
 	: m_serverConnector(serverConnector)
+	, m_uiRoomList(serverConnector)
+
+	, m_btnCreate()
+	, m_btnExit()
 {
 }
 
@@ -32,18 +31,49 @@ GomokuLobby::~GomokuLobby()
 
 void GomokuLobby::Init()
 {
-	auto _CreateFont = [](size_t size, const std::wstring& font, LPD3DXFONT& target) { D3DXCreateFontW(DEVICE, size, NULL, FW_DONTCARE, NULL, false, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, font.data(), &target); };
 	auto CreateTex = [](const std::wstring& path, LPDIRECT3DTEXTURE9& target){ D3DXCreateTextureFromFileExW(DEVICE, path.data(), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, NULL, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, NULL, nullptr, nullptr, &target); };
-	
-	_CreateFont(40, L"", m_resource.font);
 
 	CreateTex(L"./Resource/lobby/background.png", m_resource.background);
-
-	CreateTex(L"./Resource/lobby/listBar.png", m_resource.listBar);
 	CreateTex(L"./Resource/lobby/create.png", m_resource.create);
 	CreateTex(L"./Resource/lobby/exit.png", m_resource.exit);
 
 
+	m_uiRoomList.Init();
+
+	m_btnCreate.ObjLocalPos() = D3DXVECTOR3(c_createPos.x, c_createPos.y, 0);
+	m_btnCreate.SetArea(20, 20, 380, 180);
+	m_btnCreate.SetTex(m_resource.create);
+	m_btnCreate.SetEvent([this]()
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "CreateRoom";
+		arJSON roomJSON;
+		{
+			roomJSON["Name"] = []()->std::string
+			{
+				switch (rand() % 4)
+				{
+				case 0:	return "Hello Gomoku";
+				case 1:	return "i am god";
+				case 2:	return "´ýº­";
+				case 3:	return "Ang";
+				}
+				return {};
+			}();
+		}
+		oJSON["Room"] = roomJSON;
+		__ar_send(*m_serverConnector, oJSON);
+	});
+	
+	m_btnExit.ObjLocalPos() = D3DXVECTOR3(c_exitPos.x, c_exitPos.y, 0);
+	m_btnExit.SetArea(20, 20, 380, 180);
+	m_btnExit.SetTex(m_resource.exit);
+	m_btnExit.SetEvent([this]()
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "LeaveLobby";
+		__ar_send(*m_serverConnector, oJSON);
+	});
 
 	AttachConnectorReturner();
 	arJSON readyToInit;
@@ -55,95 +85,9 @@ void GomokuLobby::Init()
 
 void GomokuLobby::Update()
 {
-	if (g_inputDevice.IsKeyDown(VK_LBUTTON))
-	{
-		const POINT mousePos = g_inputDevice.MousePos();
-		auto IsMouseIn = [&mousePos](int left, int top, int right, int bottom)->bool
-		{
-			return
-				left <= mousePos.x &&
-				top <= mousePos.y &&
-				mousePos.x < right &&
-				mousePos.y < bottom;
-		};
-
-		//Create room
-		if (IsMouseIn(c_createRealPos.x, c_createRealPos.y, c_createRealPos.x + c_createSize.x, c_createRealPos.y + c_createSize.y))
-		{
-			arJSON oJSON;
-			oJSON["Message"] = "CreateRoom";
-			arJSON roomJSON;
-			{
-				roomJSON["Name"] = []()->std::string
-				{
-					switch (rand() % 4)
-					{
-					case 0:	return "Hello Gomoku";
-					case 1:	return "i am god";
-					case 2:	return "´ýº­";
-					case 3:	return "Ang";
-					}
-					return {};
-				}();
-			}
-			oJSON["Room"] = roomJSON;
-			__ar_send(*m_serverConnector, oJSON);
-
-
-			locked_cout << "Lobby >> Create Room..." << endl;
-		}
-		//Exit
-		else if (IsMouseIn(c_exitRealPos.x, c_exitRealPos.y, c_exitRealPos.x + c_exitSize.x, c_exitRealPos.y + c_exitSize.y))
-		{
-			arJSON oJSON;
-			oJSON["Message"] = "LeaveLobby";
-			__ar_send(*m_serverConnector, oJSON);
-
-			locked_cout << "Lobby >> Leave Lobby..." << endl;
-		}
-		//Enter room(room list)
-		else
-		{
-			mutex_lock_guard lockerR(m_mtxProcessing);
-			for (int index = 0; index < m_roomList.size(); index++)
-			{
-				if (IsMouseIn(c_listBarStartPos.x + 10, c_listBarStartPos.y + 10 + index * c_listBarInterval,
-					c_listBarStartPos.x + 10 + c_listBarSize.x, c_listBarStartPos.y + 10 + c_listBarSize.y + index * c_listBarInterval))
-				{
-					auto EnterRoomPlease = [this](int id)
-					{
-						arJSON oJSON;
-						oJSON["Message"] = "EnterRoom";
-						arJSON roomJSON;
-						{
-							roomJSON["ID"] = id;
-						}
-						oJSON["Room"] = roomJSON;
-						__ar_send(*m_serverConnector, oJSON);
-
-						locked_cout << "Lobby >> Room Enter..." << endl;
-					};
-					auto GetIndex = [this](int i)->int
-					{
-						auto iter = m_roomList.begin();
-						while (i--)
-							iter++;
-						return iter->first;
-					};
-					EnterRoomPlease(GetIndex(index));
-					break;
-				}
-			}
-		}
-	}
-
-	if (g_inputDevice.IsKeyDown(VK_NUMPAD1))
-	{
-		cout_region_lock;
-		cout << "[ Room List ]" << endl;
-		for (auto& iter : m_roomList)
-			cout << iter.first << " : " << iter.second.name << endl;
-	}
+	m_uiRoomList.Update();
+	m_btnCreate.UpdateObj();
+	m_btnExit.UpdateObj();
 
 	if (g_inputDevice.IsKeyDown(VK_ESCAPE))
 		std::terminate();
@@ -153,51 +97,20 @@ void GomokuLobby::Render()
 {
 	g_sprite->Begin(D3DXSPRITE_ALPHABLEND);
 
-	auto TextA = [](LPD3DXFONT font, int x, int y, const std::string& text, DWORD flags = NULL, const D3DXCOLOR& color = D3DXCOLOR(0, 0, 0, 1))
-	{
-		RECT rc;
-		SetRect(&rc, x, y, x, y);
-		font->DrawTextA(g_sprite, text.data(), -1, &rc, flags, color);
-	};
-	auto TextW = [](LPD3DXFONT font, int x, int y, const std::wstring& text, DWORD flags = NULL, const D3DXCOLOR& color = D3DXCOLOR(0, 0, 0, 1))
-	{
-		RECT rc;
-		SetRect(&rc, x, y, x, y);
-		font->DrawTextW(g_sprite, text.data(), -1, &rc, flags, color);
-	};
 	auto Draw = [](LPDIRECT3DTEXTURE9 tex, int x, int y) { g_sprite->Draw(tex, nullptr, nullptr, &D3DXVECTOR3(x, y, 0), D3DXCOLOR(1, 1, 1, 1)); };
-
 
 	Draw(m_resource.background, 0, 0);
 	
-	Draw(m_resource.create, c_createPos.x, c_createPos.y);
-	Draw(m_resource.exit, c_exitPos.x, c_exitPos.y);
-	{
-		std::lock_guard<std::mutex> locker(m_mtxProcessing);
-		auto DrawRoomBar = [&, this](int x, int y, int id, const std::string& name, bool isWaiting)
-		{
-			Draw(m_resource.listBar, x, y);
-			TextA(m_resource.font, x + 40					, y + 50, "ID : " + std::to_string(id)	, DT_NOCLIP | DT_LEFT | DT_VCENTER);
-			TextA(m_resource.font, x + 180					, y + 50, name, DT_NOCLIP | DT_LEFT | DT_VCENTER);
-			TextA(m_resource.font, x + c_listBarSize.x - 40	, y + 50, isWaiting ? "Waiting" : "Playing", DT_NOCLIP | DT_RIGHT | DT_VCENTER);
-		};
-		
-		int count = 0;
-		for (auto& iter : m_roomList)
-		{
-			int id = iter.first;
-			std::string name = iter.second.name;
-
-			DrawRoomBar(c_listBarStartPos.x, c_listBarStartPos.y + c_listBarInterval * count, id, name, iter.second.state == GomokuRoomData::State::Waiting);
-			count++;
-		}
-	}
+	m_uiRoomList.Render();
+	m_btnCreate.RenderObj();
+	m_btnExit.RenderObj();
 
 	g_sprite->End();
 }
 
 void GomokuLobby::Release()
 {
+	m_uiRoomList.Release();
 	DetachConnectorReturner();
 }
 
@@ -272,7 +185,8 @@ bool GomokuLobby::RoomListRefresh(const arJSON & iJSON)
 		return false;
 
 	{ locked_cout << "Room list refreshing..." << endl; }
-	m_roomList.clear();
+
+	m_uiRoomList.ListClear();
 	for (auto& iter : iJSON["RoomList"])
 	{
 		if (!iter.IsIn("ID") || !iter.IsIn("State"))
@@ -304,11 +218,10 @@ bool GomokuLobby::RoomCreated(const arJSON & iJSON)
 	if (!roomJSON.IsIn("ID"))
 		return false;
 
-	int id						= roomJSON["ID"].Int();
+	int id = roomJSON["ID"].Int();
 	std::string name;
 	bool locked;
 	GomokuRoomData::State state	= GomokuRoomData::State::Waiting;
-	///GomokuRoomData::State state	= static_cast<GomokuRoomData::State>(roomJSON["State"].Int());
 
 	if (roomJSON.IsIn("Name"))
 		name = roomJSON["Name"].Str();
@@ -365,27 +278,19 @@ bool GomokuLobby::LobbyLeaved(const arJSON & iJSON)
 
 bool GomokuLobby::RoomCreated(int id, const std::string& name, bool isLocked, GomokuRoomData::State state)
 {
-	if (m_roomList.find(id) != m_roomList.end())
-		return false;
-
 	GomokuRoomData room;
 	room.id = id;
 	room.name = name;
 	room.isLocked = isLocked;
 	room.state = state;
 
-	m_roomList.insert(std::make_pair(id, room));
+	m_uiRoomList.RegistRoom(room);
 	return false;
 }
 
 bool GomokuLobby::RoomUpdate(int id, GomokuRoomData::State state)
 {
-	auto iter = m_roomList.find(id);
-	if (iter == m_roomList.end())
-		return false;
-
-	GomokuRoomData& room = iter->second;
-	room.state = state;
+	m_uiRoomList.UpdateRoom(id, state);
 	return false;
 }
 
@@ -399,9 +304,7 @@ bool GomokuLobby::RoomEntered(int id, const std::string& name, bool isLocked)
 
 bool GomokuLobby::RoomDestroyed(int id)
 {
-	auto iter = m_roomList.find(id);
-	if (iter != m_roomList.end())
-		m_roomList.erase(iter);
+	m_uiRoomList.UnregistRoom(id);
 	return false;
 }
 
@@ -420,8 +323,6 @@ bool GomokuLobby::LobbyLeaved()
 GomokuLobby::Resource::Resource()
 	: background(nullptr)
 	
-	, font(nullptr)
-	, listBar(nullptr)
 	, create(nullptr)
 	, exit(nullptr)
 {
@@ -431,8 +332,152 @@ GomokuLobby::Resource::~Resource()
 {
 	if (background)	background->Release();
 
-	if (font)		font->Release();
-	if (listBar)	listBar->Release();
 	if (create)		create->Release();
 	if (exit)		exit->Release();
+}
+
+
+
+
+
+
+
+GomokuLobby::UIRoomList::UIRoomList(AsyncConnector* serverConnector)
+	: m_serverConnector(serverConnector)
+
+	, m_scroll(0)
+
+	, r_font(nullptr)
+	, r_listBar(nullptr)
+	, r_isLocked(nullptr)
+	, r_isPlaying(nullptr)
+{
+}
+
+
+
+void GomokuLobby::UIRoomList::Init()
+{
+	auto CreateTex = [](const std::wstring& path, LPDIRECT3DTEXTURE9& target) { D3DXCreateTextureFromFileExW(DEVICE, path.data(), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, NULL, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, NULL, nullptr, nullptr, &target); };
+	auto _CreateFont = [](size_t size, const std::wstring& font, LPD3DXFONT& target) { D3DXCreateFontW(DEVICE, size, NULL, FW_DONTCARE, NULL, false, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, font.data(), &target); };
+	
+	_CreateFont(40, L"", r_font);
+	CreateTex(L"./Resource/lobby/listBar.png",		r_listBar);
+	CreateTex(L"./Resource/lobby/isLocked.png",		r_isLocked);
+	CreateTex(L"./Resource/lobby/isPlaying.png",	r_isPlaying);
+}
+
+void GomokuLobby::UIRoomList::Update()
+{
+	constexpr int c_scrollSize = 10;
+
+	m_scroll += g_inputDevice.MouseWheel() * c_scrollSize / 120;
+	int maxScroll = (static_cast<int>(m_roomList.size()) - 6) * c_listBarInterval;
+
+	if (m_scroll > maxScroll) m_scroll = maxScroll;
+	if (m_scroll < 0) m_scroll = 0;
+
+
+	int listIndex = 0;
+	for (auto& iter : m_roomList)
+	{
+		auto button = iter.second.second;
+		button->ObjLocalPos().y = listIndex * c_listBarInterval - m_scroll;
+
+		if		(button->ObjLocalPos().y < 0)	continue;
+		else if (button->ObjLocalPos().y > 600)	break;
+		else									button->UpdateObj();
+
+		listIndex++;
+	}
+}
+
+void GomokuLobby::UIRoomList::Render()
+{
+	for (auto& iter : m_roomList)
+	{
+		auto button = iter.second.second;
+
+		auto Text = [](LPD3DXFONT font, int x, int y, const std::string& text, DWORD flags = NULL, const D3DXCOLOR& color = D3DXCOLOR(0, 0, 0, 1))
+		{
+			RECT rc;
+			SetRect(&rc, x, y, x, y);
+			font->DrawTextA(g_sprite, text.data(), -1, &rc, flags, color);
+		};
+		auto Draw = [](LPDIRECT3DTEXTURE9 tex, int x, int y) { g_sprite->Draw(tex, nullptr, nullptr, &D3DXVECTOR3(x, y, 0), D3DXCOLOR(1, 1, 1, 1)); };
+
+		auto DrawUI = [&, this](int x, int y)
+		{
+			const auto& data = iter.second.first;
+
+			int id = data.id;
+			const std::string& name = data.name;
+			auto state = data.state;
+			bool isLocked = data.isLocked;
+
+			button->RenderObj();
+			
+			if (isLocked)									Draw(r_isLocked, x + 25, y + 25);
+			if (state == GomokuRoomData::State::Playing)	Draw(r_isPlaying, x + 1200 - 75, y + 25);
+
+			Text(r_font, x + 100, y + 50, "ID : " + std::to_string(id), DT_NOCLIP | DT_LEFT | DT_VCENTER);
+			Text(r_font, x + 250, y + 50, name, DT_NOCLIP | DT_LEFT | DT_VCENTER);
+			Text(r_font, x + 1200 - 100, y + 50, (state == GomokuRoomData::State::Waiting ? "1/2" : "2/2"), DT_NOCLIP | DT_RIGHT | DT_VCENTER);
+		};
+
+			 if (button->ObjLocalPos().y < 0)	continue;
+		else if (button->ObjLocalPos().y > 600)	break;
+		else									DrawUI(button->ObjWorldPos().x, button->ObjWorldPos().y);
+	}
+}
+
+void GomokuLobby::UIRoomList::Release()
+{
+	if (r_font)			r_font->Release();
+	if (r_listBar)		r_listBar->Release();
+	if (r_isLocked)		r_isLocked->Release();
+	if (r_isPlaying)	r_isPlaying->Release();
+}
+
+
+
+void GomokuLobby::UIRoomList::RegistRoom(const GomokuRoomData & data)
+{
+	auto pairib = m_roomList.insert(std::make_pair(data.id, std::make_pair(data, nullptr)));
+	if (!pairib.second)
+		return;
+
+	auto RequestEnterRoom = [](int id, AsyncConnector* connector)
+		{
+			arJSON oJSON;
+			oJSON["Message"] = "EnterRoom";
+			arJSON roomJSON;
+			{
+				roomJSON["ID"] = id;
+			}
+			oJSON["Room"] = roomJSON;
+			__ar_send(*connector, oJSON);
+		};
+
+	std::shared_ptr<Button> btn(new Button());
+	btn->SetArea(10, 10, 1190, 90);
+	btn->SetTex(r_listBar);
+	int& _id = pairib.first->second.first.id;
+	btn->SetEvent([&, this]() { RequestEnterRoom(_id, m_serverConnector); });
+
+	pairib.first->second.second = btn;
+}
+
+void GomokuLobby::UIRoomList::UpdateRoom(int roomID, GomokuRoomData::State state)
+{
+	auto iter = m_roomList.find(roomID);
+	if (iter != m_roomList.end())
+		iter->second.first.state = state;
+}
+
+void GomokuLobby::UIRoomList::UnregistRoom(int roomID)
+{
+	auto iter = m_roomList.find(roomID);
+	if (iter != m_roomList.end())
+		m_roomList.erase(iter);
 }

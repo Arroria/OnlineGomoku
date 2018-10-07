@@ -51,7 +51,7 @@ bool GomokuRoom::MessageProcessing(AsyncConnector & user, int recvResult, Socket
 			if (JSON_To_arJSON(recvData.Buffer(), iJSON))
 			{
 				server_log_error("JSON Errored by received message from " << user.ToStr() << " in Room" << endl);
-				return true;
+				return false;
 			}
 
 			if ((msg = CheckMessage(iJSON["Message"].Str())) == Message::Invalid)

@@ -234,7 +234,7 @@ bool GomokuRoom::UserState(const arJSON & iJSON)
 {
 	if (iJSON.IsIn("UserState"))
 		return UserState(iJSON["UserState"].Str() == "Host");
-	else false;
+	return false;
 }
 
 bool GomokuRoom::RoomEntered(const arJSON & iJSON)
