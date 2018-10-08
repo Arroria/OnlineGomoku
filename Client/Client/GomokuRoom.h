@@ -29,6 +29,7 @@ public:
 	void Update() override;
 	void Render() override;
 	void Release() override;
+	LRESULT MsgProc(HWND, UINT, WPARAM, LPARAM) override { return NULL; }
 
 private:
 	inline void AttachConnectorReturner()

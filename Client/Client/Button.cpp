@@ -155,5 +155,6 @@ void Button::Update()
 void Button::Render()
 {
 	auto Draw = [](LPDIRECT3DTEXTURE9 tex, int x, int y) { g_sprite->Draw(tex, nullptr, nullptr, &D3DXVECTOR3(x, y, 0), D3DXCOLOR(1, 1, 1, 1)); };
-	Draw(m_tex, ObjWorldPos().x, ObjWorldPos().y);
+	if (m_tex)
+		Draw(m_tex, ObjWorldPos().x, ObjWorldPos().y);
 }

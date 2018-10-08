@@ -16,6 +16,7 @@ public:
 
 	void Update();
 	void Render();
+	LRESULT MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
 	Scene * m_currScene;

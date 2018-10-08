@@ -13,12 +13,18 @@ constexpr POINT c_createPos = { 400, 600 };
 constexpr POINT c_exitPos = { 800, 600 };
 
 
+#include <filesystem>
+inline std::string temp_wtoa(const std::wstring& w)
+{
+	return std::filesystem::path(w).string();
+}
+
 
 GomokuLobby::GomokuLobby(AsyncConnector* serverConnector)
 	: m_serverConnector(serverConnector)
 	, m_uiRoomList(serverConnector)
+	, m_uiRoomCreator(serverConnector)
 
-	, m_btnCreate()
 	, m_btnExit()
 {
 }
@@ -34,36 +40,11 @@ void GomokuLobby::Init()
 	auto CreateTex = [](const std::wstring& path, LPDIRECT3DTEXTURE9& target){ D3DXCreateTextureFromFileExW(DEVICE, path.data(), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, NULL, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, NULL, nullptr, nullptr, &target); };
 
 	CreateTex(L"./Resource/lobby/background.png", m_resource.background);
-	CreateTex(L"./Resource/lobby/create.png", m_resource.create);
 	CreateTex(L"./Resource/lobby/exit.png", m_resource.exit);
 
 
 	m_uiRoomList.Init();
-
-	m_btnCreate.ObjLocalPos() = D3DXVECTOR3(c_createPos.x, c_createPos.y, 0);
-	m_btnCreate.SetArea(20, 20, 380, 180);
-	m_btnCreate.SetTex(m_resource.create);
-	m_btnCreate.SetEvent([this]()
-	{
-		arJSON oJSON;
-		oJSON["Message"] = "CreateRoom";
-		arJSON roomJSON;
-		{
-			roomJSON["Name"] = []()->std::string
-			{
-				switch (rand() % 4)
-				{
-				case 0:	return "Hello Gomoku";
-				case 1:	return "i am god";
-				case 2:	return "´ýº­";
-				case 3:	return "Ang";
-				}
-				return {};
-			}();
-		}
-		oJSON["Room"] = roomJSON;
-		__ar_send(*m_serverConnector, oJSON);
-	});
+	m_uiRoomCreator.Init();
 	
 	m_btnExit.ObjLocalPos() = D3DXVECTOR3(c_exitPos.x, c_exitPos.y, 0);
 	m_btnExit.SetArea(20, 20, 380, 180);
@@ -86,7 +67,7 @@ void GomokuLobby::Init()
 void GomokuLobby::Update()
 {
 	m_uiRoomList.Update();
-	m_btnCreate.UpdateObj();
+	m_uiRoomCreator.Update();
 	m_btnExit.UpdateObj();
 
 	if (g_inputDevice.IsKeyDown(VK_ESCAPE))
@@ -102,7 +83,7 @@ void GomokuLobby::Render()
 	Draw(m_resource.background, 0, 0);
 	
 	m_uiRoomList.Render();
-	m_btnCreate.RenderObj();
+	m_uiRoomCreator.Render();
 	m_btnExit.RenderObj();
 
 	g_sprite->End();
@@ -111,7 +92,13 @@ void GomokuLobby::Render()
 void GomokuLobby::Release()
 {
 	m_uiRoomList.Release();
+	m_uiRoomCreator.Release();
 	DetachConnectorReturner();
+}
+
+LRESULT GomokuLobby::MsgProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+	return m_uiRoomCreator.MsgProc(hWnd, iMsg, wParam, lParam);
 }
 
 
@@ -323,7 +310,6 @@ bool GomokuLobby::LobbyLeaved()
 GomokuLobby::Resource::Resource()
 	: background(nullptr)
 	
-	, create(nullptr)
 	, exit(nullptr)
 {
 }
@@ -332,7 +318,6 @@ GomokuLobby::Resource::~Resource()
 {
 	if (background)	background->Release();
 
-	if (create)		create->Release();
 	if (exit)		exit->Release();
 }
 
@@ -480,4 +465,157 @@ void GomokuLobby::UIRoomList::UnregistRoom(int roomID)
 	auto iter = m_roomList.find(roomID);
 	if (iter != m_roomList.end())
 		m_roomList.erase(iter);
+}
+
+
+
+
+
+
+
+GomokuLobby::UIRoomCreator::UIRoomCreator(AsyncConnector* serverConnector)
+	: m_serverConnector(serverConnector)
+	, m_ime(nullptr)
+	, m_state(State::Nothing)
+
+	, r_font(nullptr)
+	, r_create(nullptr)
+	, r_input(nullptr)
+{
+}
+
+GomokuLobby::UIRoomCreator::~UIRoomCreator()
+{
+}
+
+
+
+void GomokuLobby::UIRoomCreator::Init()
+{
+	auto CreateTex = [](const std::wstring& path, LPDIRECT3DTEXTURE9& target) { D3DXCreateTextureFromFileExW(DEVICE, path.data(), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, NULL, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, NULL, nullptr, nullptr, &target); };
+	auto _CreateFont = [](size_t size, const std::wstring& font, LPD3DXFONT& target) { D3DXCreateFontW(DEVICE, size, NULL, FW_DONTCARE, NULL, false, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, font.data(), &target); };
+
+	_CreateFont(30, L"", r_font);
+	CreateTex(L"./Resource/lobby/roomInfo.png", r_input);
+	CreateTex(L"./Resource/lobby/create.png", r_create);
+
+
+
+	m_btnCreate.ObjLocalPos() = D3DXVECTOR3(c_createPos.x, c_createPos.y, 0);
+	m_btnCreate.SetArea(20, 20, 380, 180);
+	m_btnCreate.SetTex(r_create);
+	m_btnCreate.SetEvent([this]()
+	{
+		arJSON oJSON;
+		oJSON["Message"] = "CreateRoom";
+		arJSON roomJSON;
+		{
+			roomJSON["Name"] = m_name.size() ?
+				 m_name : []()->std::string
+			{
+				srand(time(NULL));
+				switch (rand() % 4)
+				{
+				case 0:	return "Hello Gomoku";
+				case 1:	return "You never win me";
+				case 2:	return "No gomoku no life";
+				case 3:	return "JUST COME IN";
+				}
+				return {};
+			}();
+			roomJSON["Password"] = m_password;
+		}
+		oJSON["Room"] = roomJSON;
+		__ar_send(*m_serverConnector, oJSON);
+	});
+
+	m_btnName.ObjLocalPos() = D3DXVECTOR3(0, 600, 0);
+	m_btnName.SetArea(30, 30, 370, 95);
+	m_btnName.SetEvent([this]()
+	{
+		if (m_ime)
+		{
+			delete m_ime;
+			m_ime = nullptr;
+		}
+
+		m_state = State::Name;
+		m_ime = new IMEDevice;
+	});
+
+	m_btnPassword.ObjLocalPos() = D3DXVECTOR3(0, 600, 0);
+	m_btnPassword.SetArea(30, 105, 370, 170);
+	m_btnPassword.SetEvent([this]()
+	{
+		if (m_ime)
+		{
+			delete m_ime;
+			m_ime = nullptr;
+		}
+
+		m_state = State::Password;
+		m_ime = new IMEDevice;
+	});
+}
+
+void GomokuLobby::UIRoomCreator::Update()
+{
+	m_btnCreate		.UpdateObj();
+	m_btnName		.UpdateObj();
+	m_btnPassword	.UpdateObj();
+}
+
+void GomokuLobby::UIRoomCreator::Render()
+{
+	auto Text = [](LPD3DXFONT font, int x, int y, const std::string& text, DWORD flags = NULL, const D3DXCOLOR& color = D3DXCOLOR(0, 0, 0, 1))
+	{
+		RECT rc;
+		SetRect(&rc, x, y, x, y);
+		font->DrawTextA(g_sprite, text.data(), -1, &rc, flags, color);
+	};
+	auto Draw = [](LPDIRECT3DTEXTURE9 tex, int x, int y) { g_sprite->Draw(tex, nullptr, nullptr, &D3DXVECTOR3(x, y, 0), D3DXCOLOR(1, 1, 1, 1)); };
+	
+	m_btnName.RenderObj();
+	m_btnPassword.RenderObj();
+	Draw(r_input, m_btnName.ObjLocalPos().x, m_btnName.ObjLocalPos().y);
+	Text(r_font, m_btnName.ObjLocalPos().x + 30 + 20, m_btnName.ObjLocalPos().y + 72.5f	, m_name, DT_NOCLIP | DT_LEFT | DT_VCENTER);
+	Text(r_font, m_btnName.ObjLocalPos().x + 30 + 20, m_btnName.ObjLocalPos().y + 147.5f	, m_password, DT_NOCLIP | DT_LEFT | DT_VCENTER);
+
+	m_btnCreate.RenderObj();
+}
+
+void GomokuLobby::UIRoomCreator::Release()
+{
+	if (m_ime)
+	{
+		delete m_ime;
+		m_ime = nullptr;
+	}
+
+	if (r_font)		r_font->Release();
+	if (r_create)	r_create->Release();
+	if (r_input)	r_input	->Release();
+}
+
+LRESULT GomokuLobby::UIRoomCreator::MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (m_ime)
+	{
+		m_ime->MsgProc(hWnd, msg, wParam, lParam);
+
+		auto __Set = [this](std::string& pos)
+		{
+			pos = temp_wtoa(m_ime->GetString());
+			
+			if (pos.size() > 10)
+				pos.resize(10);
+		};
+
+		switch (m_state)
+		{
+		case GomokuLobby::UIRoomCreator::State::Name:		__Set(m_name);		break;
+		case GomokuLobby::UIRoomCreator::State::Password:	__Set(m_password);	break; 
+		}
+	}
+	return NULL;
 }

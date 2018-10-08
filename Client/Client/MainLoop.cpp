@@ -65,7 +65,8 @@ bool MainLoop::Release()
 LRESULT MainLoop::MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	g_inputDevice.MsgProc(msg, wParam, lParam);
-	
+	SntInst(SceneManager).MsgProc(hWnd, msg, wParam, lParam);
+
 	switch (msg)
 	{
 	case WM_DESTROY:
@@ -75,6 +76,5 @@ LRESULT MainLoop::MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	default:
 		return DefWindowProcW(hWnd, msg, wParam, lParam);
 	}
-
 	return 0;
 }

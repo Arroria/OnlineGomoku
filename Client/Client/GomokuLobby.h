@@ -52,7 +52,7 @@ public:
 	void Update() override;
 	void Render() override;
 	void Release() override;
-	
+	LRESULT MsgProc(HWND, UINT, WPARAM, LPARAM) override;
 
 private:
 	inline void AttachConnectorReturner()
@@ -109,18 +109,47 @@ private:
 		LPDIRECT3DTEXTURE9 r_isLocked;
 		LPDIRECT3DTEXTURE9 r_isPlaying;
 	} m_uiRoomList;
-	Button m_btnCreate;
 	Button m_btnExit;
+	class UIRoomCreator
+	{
+	public:
+		UIRoomCreator(AsyncConnector* serverConnector);
+		~UIRoomCreator();
+
+		void Init();
+		void Update();
+		void Render();
+		void Release();
+		LRESULT MsgProc(HWND, UINT, WPARAM, LPARAM);
+
+	private:
+		AsyncConnector * m_serverConnector;
+		IMEDevice* m_ime;
+		enum class State
+		{
+			Nothing,
+			Name,
+			Password,
+		} m_state;
+		
+		Button m_btnCreate;
+		Button m_btnName;
+		Button m_btnPassword;
+		std::string m_name;
+		std::string m_password;
+
+		LPD3DXFONT r_font;
+		LPDIRECT3DTEXTURE9 r_create;
+		LPDIRECT3DTEXTURE9 r_input;
+	} m_uiRoomCreator;
 
 	struct Resource
 	{
 		LPDIRECT3DTEXTURE9 background;
 		
-		LPDIRECT3DTEXTURE9 create;
 		LPDIRECT3DTEXTURE9 exit;
 
 		Resource();
 		~Resource();
 	} m_resource;
 };
-

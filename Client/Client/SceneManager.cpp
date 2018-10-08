@@ -58,3 +58,10 @@ void SceneManager::Render()
 		}
 	}
 }
+
+LRESULT SceneManager::MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (m_currScene)
+		return m_currScene->MsgProc(hWnd, msg, wParam, lParam);
+	return NULL;
+}

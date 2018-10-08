@@ -15,6 +15,7 @@ using std::endl;
 #include <SocketReciver.h>
 #include <AsyncConnector.h>
 
+//Input Device
 #include "./SDK/InputDevice.h"
 #if _DEBUG
 #pragma comment (lib, "./SDK/InputDeviceD.lib")
@@ -22,6 +23,15 @@ using std::endl;
 #pragma comment (lib, "./SDK/InputDevice.lib")
 #endif
 inline InputDevice g_inputDevice;
+
+//IME Device
+#include "./SDK/IMEDevice.h"
+#if _DEBUG
+#pragma comment (lib, "./SDK/IMEDeviceD.lib")
+#else
+#pragma comment (lib, "./SDK/IMEDevice.lib")
+#endif
+
 
 #include "ProcessManager.h"
 inline ProcessManager* g_processManager = nullptr;
