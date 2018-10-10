@@ -8,7 +8,7 @@
 #include "Button.h"
 
 
-constexpr size_t c_listBarInterval = 100;
+constexpr int c_listBarInterval = 100;
 constexpr POINT c_createPos = { 400, 600 };
 constexpr POINT c_exitPos = { 800, 600 };
 
@@ -369,11 +369,11 @@ void GomokuLobby::UIRoomList::Update()
 		auto button = iter.second.second;
 		button->ObjLocalPos().y = listIndex * c_listBarInterval - m_scroll;
 
-		if		(button->ObjLocalPos().y < 0)	continue;
-		else if (button->ObjLocalPos().y > 600)	break;
-		else									button->UpdateObj();
-
 		listIndex++;
+
+		if		(button->ObjLocalPos().y < 0)	continue;
+		else if (button->ObjLocalPos().y > 500)	break;
+		else									button->UpdateObj();
 	}
 }
 
@@ -411,7 +411,7 @@ void GomokuLobby::UIRoomList::Render()
 		};
 
 			 if (button->ObjLocalPos().y < 0)	continue;
-		else if (button->ObjLocalPos().y > 600)	break;
+		else if (button->ObjLocalPos().y > 500)	break;
 		else									DrawUI(button->ObjWorldPos().x, button->ObjWorldPos().y);
 	}
 }
@@ -605,10 +605,11 @@ LRESULT GomokuLobby::UIRoomCreator::MsgProc(HWND hWnd, UINT msg, WPARAM wParam, 
 
 		auto __Set = [this](std::string& pos)
 		{
-			pos = temp_wtoa(m_ime->GetString());
+			std::wstring data = m_ime->GetString();
+			if (data.size() > 10)
+				data.resize(10);
 			
-			if (pos.size() > 10)
-				pos.resize(10);
+			pos = temp_wtoa(data);
 		};
 
 		switch (m_state)
